@@ -181,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('setting-display-name').value = s.display_name || '';
     document.getElementById('setting-username').value = s.username ? s.username.replace(/^@/, '') : '';
     document.getElementById('setting-location').value = s.location || '';
+    document.getElementById('setting-avatar-glow-enabled').checked = String(s.avatar_glow_enabled) !== '0';
     document.getElementById('setting-avatar-glow').value = s.avatar_glow || '#8b5cf6';
     document.getElementById('setting-avatar-glow-text').value = s.avatar_glow || '#8b5cf6';
     document.getElementById('setting-bio').value = s.bio || '';
@@ -200,17 +201,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('setting-bg-overlay').value = s.bg_overlay_opacity !== undefined ? s.bg_overlay_opacity : 0.6;
     document.getElementById('overlay-val-label').textContent = `%${Math.round((s.bg_overlay_opacity || 0.6) * 100)}`;
     document.getElementById('setting-enter-text').value = s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]';
+    const enterProfileInp = document.getElementById('setting-enter-text-profile');
+    if (enterProfileInp) enterProfileInp.value = s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]';
     document.getElementById('setting-enter-overlay-enabled').checked = String(s.enter_overlay_enabled) !== '0';
 
     // 3. Audio Form
     document.getElementById('setting-audio-url').value = s.audio_url || '';
+    document.getElementById('setting-audio-cover-url').value = s.audio_cover_url || '';
     document.getElementById('setting-audio-title').value = s.audio_title || '';
     document.getElementById('setting-audio-artist').value = s.audio_artist || '';
     document.getElementById('setting-audio-autoplay').checked = String(s.audio_autoplay) === '1' || s.audio_autoplay === true;
     document.getElementById('setting-show-audio-player').checked = String(s.show_audio_player) !== '0';
 
     // 4. Typewriter Form
-    let phrases = ['Software Developer 💻', 'Building the Future ⚡'];
+    let phrases = ['server.alpay.fun', 'alpay.fun'];
     try { phrases = typeof s.typewriter_phrases === 'string' ? JSON.parse(s.typewriter_phrases) : (s.typewriter_phrases || phrases); } catch {}
     renderPhrasesList(phrases);
 
@@ -225,12 +229,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('setting-accent-color').value = s.accent_color || '#8b5cf6';
     document.getElementById('setting-accent-color-text').value = s.accent_color || '#8b5cf6';
     document.getElementById('setting-particles-effect').value = s.particles_effect || 'snow';
-    document.getElementById('setting-card-blur').value = s.card_blur || 20;
-    document.getElementById('card-blur-val').textContent = `${s.card_blur || 20}px`;
-    document.getElementById('setting-card-opacity').value = s.card_opacity || 0.55;
-    document.getElementById('card-opacity-val').textContent = `%${Math.round((s.card_opacity || 0.55) * 100)}`;
+    document.getElementById('setting-show-card').checked = String(s.show_card) !== '0';
+    document.getElementById('setting-card-blur').value = s.card_blur !== undefined ? s.card_blur : 25;
+    document.getElementById('card-blur-val').textContent = `${s.card_blur !== undefined ? s.card_blur : 25}px`;
+    document.getElementById('setting-card-opacity').value = s.card_opacity !== undefined ? s.card_opacity : 0.15;
+    document.getElementById('card-opacity-val').textContent = `%${Math.round((s.card_opacity !== undefined ? s.card_opacity : 0.15) * 100)}`;
     document.getElementById('setting-cursor-trail').checked = String(s.cursor_trail) === '1' || s.cursor_trail === true;
     document.getElementById('setting-show-view-counter').checked = String(s.show_view_counter) !== '0';
+  }
+
+  // Sync enter text inputs
+  const enterBgInp = document.getElementById('setting-enter-text');
+  const enterProfInp = document.getElementById('setting-enter-text-profile');
+  if (enterBgInp && enterProfInp) {
+    enterBgInp.addEventListener('input', () => { enterProfInp.value = enterBgInp.value; });
+    enterProfInp.addEventListener('input', () => { enterBgInp.value = enterProfInp.value; });
   }
 
   // --- Dynamic Color Input Sync ---
@@ -297,14 +310,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('profile-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const badges = Array.from(document.querySelectorAll('input[name="badges"]:checked')).map(cb => cb.value);
+    const enterVal = document.getElementById('setting-enter-text-profile')?.value || document.getElementById('setting-enter-text')?.value;
 
     const payload = {
       avatar_url: document.getElementById('setting-avatar-url').value,
       display_name: document.getElementById('setting-display-name').value,
       username: document.getElementById('setting-username').value,
       location: document.getElementById('setting-location').value,
+      avatar_glow_enabled: document.getElementById('setting-avatar-glow-enabled').checked ? '1' : '0',
       avatar_glow: document.getElementById('setting-avatar-glow').value,
       bio: document.getElementById('setting-bio').value,
+      click_to_enter_text: enterVal,
       badges: JSON.stringify(badges)
     };
     saveSettingsPayload(payload);
@@ -329,6 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     const payload = {
       audio_url: document.getElementById('setting-audio-url').value,
+      audio_cover_url: document.getElementById('setting-audio-cover-url').value,
       audio_title: document.getElementById('setting-audio-title').value,
       audio_artist: document.getElementById('setting-audio-artist').value,
       audio_autoplay: document.getElementById('setting-audio-autoplay').checked ? '1' : '0',
@@ -358,6 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const payload = {
       accent_color: document.getElementById('setting-accent-color').value,
       particles_effect: document.getElementById('setting-particles-effect').value,
+      show_card: document.getElementById('setting-show-card').checked ? '1' : '0',
       card_blur: document.getElementById('setting-card-blur').value,
       card_opacity: parseFloat(document.getElementById('setting-card-opacity').value),
       cursor_trail: document.getElementById('setting-cursor-trail').checked ? '1' : '0',
@@ -407,6 +425,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFileUpload('audio-file-input', (url) => {
     document.getElementById('setting-audio-url').value = url;
     showToast('Ses dosyası yüklendi!', 'success');
+  });
+
+  setupFileUpload('audio-cover-file-input', (url) => {
+    document.getElementById('setting-audio-cover-url').value = url;
+    showToast('Albüm kapağı yüklendi!', 'success');
   });
 
   setupFileUpload('link-icon-file-input', (url) => {

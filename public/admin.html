@@ -232,8 +232,12 @@
               </div>
 
               <div class="form-group">
-                <label>Avatar Işıma / Neon Rengi</label>
-                <div class="color-picker-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-avatar-glow-enabled" checked>
+                  <span class="checkbox-custom"></span>
+                  Avatar Işımasını / Neon Halkasını Etkinleştir
+                </label>
+                <div id="avatar-glow-wrap" class="color-picker-group mt-2">
                   <input type="color" id="setting-avatar-glow" class="color-input">
                   <input type="text" id="setting-avatar-glow-text" class="form-control color-text">
                 </div>
@@ -242,6 +246,11 @@
               <div class="form-group full-width">
                 <label>Biyografi / Açıklama</label>
                 <textarea id="setting-bio" rows="3" class="form-control" placeholder="Kendinizden veya projelerinizden bahsedin..."></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Giriş Perdesi Metni ("Click to Enter")</label>
+                <input type="text" id="setting-enter-text-profile" class="form-control" placeholder="[ TIKLA VE GİRİŞ YAP ]">
               </div>
 
               <!-- Badges Checklist -->
@@ -254,23 +263,23 @@
                   </label>
                   <label class="badge-checkbox-label">
                     <input type="checkbox" name="badges" value="verified">
-                    <span class="badge-pill"><i class="fa-solid fa-shield-halved"></i> Doğrulanmış</span>
+                    <span class="badge-pill"><i class="fa-solid fa-circle-check" style="color: #38bdf8;"></i> Doğrulanmış</span>
                   </label>
                   <label class="badge-checkbox-label">
                     <input type="checkbox" name="badges" value="vip">
-                    <span class="badge-pill"><i class="fa-solid fa-star"></i> VIP</span>
+                    <span class="badge-pill"><i class="fa-solid fa-shield-halved" style="color: #fbbf24;"></i> VIP</span>
                   </label>
                   <label class="badge-checkbox-label">
                     <input type="checkbox" name="badges" value="crown">
-                    <span class="badge-pill"><i class="fa-solid fa-crown"></i> Crown / Sahip</span>
+                    <span class="badge-pill"><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Crown / Sahip</span>
                   </label>
                   <label class="badge-checkbox-label">
                     <input type="checkbox" name="badges" value="sparkles">
-                    <span class="badge-pill"><i class="fa-solid fa-wand-magic-sparkles"></i> Parıltı</span>
+                    <span class="badge-pill"><i class="fa-solid fa-wand-magic-sparkles" style="color: #ec4899;"></i> Parıltı</span>
                   </label>
                   <label class="badge-checkbox-label">
                     <input type="checkbox" name="badges" value="flame">
-                    <span class="badge-pill"><i class="fa-solid fa-fire-flame-curved"></i> Alev</span>
+                    <span class="badge-pill"><i class="fa-solid fa-fire-flame-curved" style="color: #f97316;"></i> Alev</span>
                   </label>
                 </div>
               </div>
@@ -333,11 +342,11 @@
                 <input type="text" id="setting-enter-text" class="form-control" placeholder="[ TIKLA VE GİRİŞ YAP ]">
               </div>
 
-              <div class="form-group">
+              <div class="form-group full-width">
                 <label class="checkbox-container">
-                  <input type="checkbox" id="setting-enter-overlay-enabled">
+                  <input type="checkbox" id="setting-enter-overlay-enabled" checked>
                   <span class="checkbox-custom"></span>
-                  Giriş perdesi (Click to enter) aktif olsun
+                  Giriş perdesi (Click to Enter) aktif olsun <small style="color: var(--text-muted); font-size: 0.82rem; margin-left: 6px;">(Müziğin tarayıcı tarafından otomatik çalınabilmesi için açık tutulması önerilir)</small>
                 </label>
               </div>
 
@@ -370,6 +379,19 @@
                       <i class="fa-solid fa-cloud-arrow-up"></i> MP3 / Ses Dosyası Yükle
                     </label>
                     <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Albüm Kapağı / Özel Görsel (Opsiyonel)</label>
+                <div class="upload-controls">
+                  <input type="text" id="setting-audio-cover-url" class="form-control" placeholder="Görsel URL'si (Boş bırakılırsa varsayılan çalar ikonu kullanılır)...">
+                  <div class="file-upload-btn-wrapper">
+                    <label class="btn-secondary btn-sm" for="audio-cover-file-input">
+                      <i class="fa-solid fa-cloud-arrow-up"></i> Albüm Kapağı Yükle
+                    </label>
+                    <input type="file" id="audio-cover-file-input" accept="image/*" style="display: none;">
                   </div>
                 </div>
               </div>
@@ -522,14 +544,22 @@
                 </select>
               </div>
 
-              <div class="form-group">
-                <label>Profil Kartı Bulanıklığı (<span id="card-blur-val">20px</span>)</label>
-                <input type="range" id="setting-card-blur" min="0" max="40" step="2" value="20" class="slider-control">
+              <div class="form-group full-width">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-show-card" checked>
+                  <span class="checkbox-custom"></span>
+                  Profil Kartını Göster (macOS Liquid Glass Arka Planı)
+                </label>
               </div>
 
-              <div class="form-group">
-                <label>Profil Kartı Opaklığı (<span id="card-opacity-val">%55</span>)</label>
-                <input type="range" id="setting-card-opacity" min="0.1" max="0.95" step="0.05" value="0.55" class="slider-control">
+              <div class="form-group" id="card-blur-group">
+                <label>Kart Bulanıklığı (<span id="card-blur-val">25px</span>)</label>
+                <input type="range" id="setting-card-blur" min="0" max="50" step="2" value="25" class="slider-control">
+              </div>
+
+              <div class="form-group" id="card-opacity-group">
+                <label>Kart Opaklığı (<span id="card-opacity-val">%15</span>)</label>
+                <input type="range" id="setting-card-opacity" min="0.02" max="0.9" step="0.02" value="0.15" class="slider-control">
               </div>
 
               <div class="form-group">
