@@ -479,7 +479,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (Array.isArray(settings.tab_typewriter_phrases)) {
         tabPhrases = settings.tab_typewriter_phrases;
       }
-    } catch {}
+      if (!Array.isArray(tabPhrases) && tabPhrases) {
+        tabPhrases = [String(tabPhrases)];
+      }
+    } catch {
+      if (typeof settings.tab_typewriter_phrases === 'string' && settings.tab_typewriter_phrases.trim()) {
+        tabPhrases = [settings.tab_typewriter_phrases.trim()];
+      }
+    }
 
     // Fallback to profile phrases or staticTitle if tabPhrases is empty
     if (!tabPhrases || tabPhrases.length === 0) {

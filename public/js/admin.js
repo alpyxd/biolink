@@ -328,7 +328,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let tabPhrases = ['alpay.fun', 'server.alpay.fun', 'cyber biolink'];
     try {
       tabPhrases = typeof s.tab_typewriter_phrases === 'string' ? JSON.parse(s.tab_typewriter_phrases) : (s.tab_typewriter_phrases || tabPhrases);
-    } catch {}
+      if (!Array.isArray(tabPhrases)) {
+        tabPhrases = [String(tabPhrases)];
+      }
+    } catch {
+      if (s.tab_typewriter_phrases && typeof s.tab_typewriter_phrases === 'string') {
+        tabPhrases = [s.tab_typewriter_phrases];
+      }
+    }
     renderTabPhrasesList(tabPhrases);
 
     safeSet('setting-type-speed', 'value', s.typewriter_speed || 75);
