@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Paneli | alpay.fun</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238b5cf6'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Chart.js for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SortableJS for Drag & Drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+  <!-- Admin Stylesheet -->
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+
+  <!-- Modern Cyber Glassmorphism Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <!-- Ambient Neon Glowing Orbs -->
+    <div class="login-glow-orb orb-1"></div>
+    <div class="login-glow-orb orb-2"></div>
+    <div class="login-glow-orb orb-3"></div>
+    <div class="login-grid-pattern"></div>
+
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo-container">
+          <div class="login-logo-halo"></div>
+          <div class="login-logo">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+        </div>
+        <h2 class="login-title">alpay.fun</h2>
+        <div class="login-badge-pill">
+          <i class="fa-solid fa-lock"></i>
+          <span>Yönetim Portalı</span>
+        </div>
+      </div>
+
+      <form id="login-form" class="login-form">
+        <div class="login-field-group">
+          <label for="login-username"><i class="fa-solid fa-user-shield"></i> Kullanıcı Adı</label>
+          <div class="login-input-wrap">
+            <i class="login-field-icon fa-solid fa-user"></i>
+            <input type="text" id="login-username" value="admin" class="login-control" required autocomplete="username" placeholder="Kullanıcı adınızı girin">
+          </div>
+        </div>
+
+        <div class="login-field-group">
+          <label for="login-password"><i class="fa-solid fa-key"></i> Güvenlik Şifresi</label>
+          <div class="login-input-wrap">
+            <i class="login-field-icon fa-solid fa-lock"></i>
+            <input type="password" id="login-password" value="admin123" class="login-control" required autocomplete="current-password" placeholder="Şifrenizi girin">
+            <button type="button" id="toggle-pass-btn" class="toggle-pass-btn" title="Şifreyi Göster/Gizle" aria-label="Toggle Password">
+              <i class="fa-solid fa-eye" id="toggle-pass-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login-submit" id="login-submit-btn">
+          <span>Yönetim Paneline Giriş Yap</span>
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+        </button>
+
+        <div id="login-error" class="login-error-card" style="display: none;">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="login-error-text">Hatalı kullanıcı adı veya şifre!</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main Admin Dashboard Container -->
+  <div id="admin-app" class="admin-app" style="display: none;">
+    
+    <!-- Top Navbar -->
+    <header class="admin-header">
+      <div class="header-left">
+        <div class="brand">
+          <i class="fa-solid fa-gem brand-icon"></i>
+          <span>alpay.fun</span>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="toggle-preview-btn" class="btn-secondary btn-sm" title="Canlı Önizlemeyi Aç/Kapat">
+          <i class="fa-solid fa-mobile-screen"></i>
+          <span class="btn-text">Canlı Önizleme</span>
+        </button>
+        <a href="/" target="_blank" class="btn-secondary btn-sm" title="Siteyi Yeni Sekmede Aç">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          <span class="btn-text">Siteyi Gör</span>
+        </a>
+        <button id="logout-btn" class="btn-danger btn-sm" title="Çıkış Yap">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span class="btn-text">Çıkış</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Layout Grid: Sidebar + Main Content + Live Preview -->
+    <div class="admin-body">
+
+      <!-- Left Sidebar Navigation -->
+      <aside class="admin-sidebar">
+        <nav class="nav-menu">
+          <button class="nav-tab active" data-tab="tab-dashboard">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>İstatistikler</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-profile">
+            <i class="fa-solid fa-user-gear"></i>
+            <span>Profil & Rozetler</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-background">
+            <i class="fa-solid fa-photo-film"></i>
+            <span>Arka Plan & Medya</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-audio">
+            <i class="fa-solid fa-music"></i>
+            <span>Müzik & Ses</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-typewriter">
+            <i class="fa-solid fa-terminal"></i>
+            <span>Typewriter Efekti</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-links">
+            <i class="fa-solid fa-link"></i>
+            <span>Sosyal & Özel Linkler</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-theme">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Tema & Efektler</span>
+          </button>
+          <button class="nav-tab" data-tab="tab-security">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Güvenlik & Yedek</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Central Content Area -->
+      <main class="admin-content">
+
+        <!-- 1. DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <div class="pane-header">
+            <h2>Genel Bakış & İstatistikler</h2>
+            <p>Biolink sayfanızın anlık ziyaret ve link tıklama metrikleri</p>
+          </div>
+
+          <!-- Stats Cards Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon icon-views"><i class="fa-solid fa-eye"></i></div>
+              <div class="stat-info">
+                <span class="stat-title">Toplam Görüntülenme</span>
+                <span class="stat-value" id="stat-total-views">0</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon icon-users"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-info">
+                <span class="stat-title">Tekil Ziyaretçi</span>
+                <span class="stat-value" id="stat-unique-visitors">0</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon icon-clicks"><i class="fa-solid fa-arrow-pointer"></i></div>
+              <div class="stat-info">
+                <span class="stat-title">Toplam Link Tıklaması</span>
+                <span class="stat-value" id="stat-total-clicks">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart Section -->
+          <div class="admin-card">
+            <h3><i class="fa-solid fa-chart-line"></i> Son 7 Günlük Ziyaret Grafiği</h3>
+            <div class="chart-wrapper">
+              <canvas id="views-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Top Clicked Links Table -->
+          <div class="admin-card">
+            <h3><i class="fa-solid fa-fire"></i> En Çok Tıklanan Bağlantılar</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tür</th>
+                    <th>Başlık</th>
+                    <th>Hedef URL</th>
+                    <th>Tıklama Sayısı</th>
+                  </tr>
+                </thead>
+                <tbody id="top-links-tbody">
+                  <!-- Dynamic rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. PROFILE TAB -->
+        <section id="tab-profile" class="tab-pane">
+          <div class="pane-header">
+            <h2>Profil & Rozet Ayarları</h2>
+            <p>Kullanıcı adı, avatar, biyografi ve rozetleri düzenleyin</p>
+          </div>
+
+          <form id="profile-form" class="settings-form">
+            <div class="form-grid">
+
+              <!-- Avatar Uploader -->
+              <div class="form-group full-width">
+                <label>Profil Fotoğrafı / Hareketli GIF</label>
+                <div class="avatar-upload-box">
+                  <img id="avatar-preview-img" src="" alt="Avatar Preview" class="avatar-thumb">
+                  <div class="upload-controls">
+                    <input type="text" id="setting-avatar-url" placeholder="Görsel veya GIF URL'si girin..." class="form-control">
+                    <div class="file-upload-btn-wrapper">
+                      <label class="btn-secondary btn-sm" for="avatar-file-input">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Dosya Yükle (Fotoğraf / GIF)
+                      </label>
+                      <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Görünen Ad</label>
+                <input type="text" id="setting-display-name" class="form-control" placeholder="Örn: Alpay">
+              </div>
+
+              <div class="form-group">
+                <label>Kullanıcı Adı (Handle)</label>
+                <input type="text" id="setting-username" class="form-control" placeholder="Örn: alpay">
+              </div>
+
+              <div class="form-group">
+                <label>Konum (Location)</label>
+                <input type="text" id="setting-location" class="form-control" placeholder="Örn: Istanbul, TR">
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-avatar-glow-enabled" checked>
+                  <span class="checkbox-custom"></span>
+                  Avatar Işımasını / Neon Halkasını Etkinleştir
+                </label>
+                <div id="avatar-glow-wrap" class="color-picker-group mt-2">
+                  <input type="color" id="setting-avatar-glow" class="color-input">
+                  <input type="text" id="setting-avatar-glow-text" class="form-control color-text">
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Biyografi / Açıklama</label>
+                <textarea id="setting-bio" rows="3" class="form-control" placeholder="Kendinizden veya projelerinizden bahsedin..."></textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Giriş Perdesi Metni ("Click to Enter")</label>
+                <input type="text" id="setting-enter-text-profile" class="form-control" placeholder="[ TIKLA VE GİRİŞ YAP ]">
+              </div>
+
+              <!-- Badges Checklist -->
+              <div class="form-group full-width">
+                <label>Profil Rozetleri</label>
+                <div class="badges-selector">
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="diamond">
+                    <span class="badge-pill"><i class="fa-solid fa-gem" style="color: #c084fc;"></i> Elmas (Diamond)</span>
+                  </label>
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="verified">
+                    <span class="badge-pill"><i class="fa-solid fa-circle-check" style="color: #38bdf8;"></i> Doğrulanmış</span>
+                  </label>
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="vip">
+                    <span class="badge-pill"><i class="fa-solid fa-shield-halved" style="color: #fbbf24;"></i> VIP</span>
+                  </label>
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="crown">
+                    <span class="badge-pill"><i class="fa-solid fa-crown" style="color: #f59e0b;"></i> Crown / Sahip</span>
+                  </label>
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="sparkles">
+                    <span class="badge-pill"><i class="fa-solid fa-wand-magic-sparkles" style="color: #ec4899;"></i> Parıltı</span>
+                  </label>
+                  <label class="badge-checkbox-label">
+                    <input type="checkbox" name="badges" value="flame">
+                    <span class="badge-pill"><i class="fa-solid fa-fire-flame-curved" style="color: #f97316;"></i> Alev</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 3. BACKGROUND TAB -->
+        <section id="tab-background" class="tab-pane">
+          <div class="pane-header">
+            <h2>Arka Plan & Medya Ayarları</h2>
+            <p>Video döngüsü (mp4/webm), hareketli GIF veya yüksek kaliteli görsel ekleyin</p>
+          </div>
+
+          <form id="background-form" class="settings-form">
+            <div class="form-grid">
+
+              <div class="form-group">
+                <label>Arka Plan Medya Türü</label>
+                <select id="setting-bg-type" class="form-control">
+                  <option value="video">MP4 / WebM Video Döngüsü</option>
+                  <option value="gif">Hareketli GIF</option>
+                  <option value="image">Statik Görsel / Fotoğraf</option>
+                  <option value="color">Dinamik Renk / Degrade</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Arka Plan Medya URL'si veya Dosyası</label>
+                <div class="upload-controls">
+                  <input type="text" id="setting-bg-url" class="form-control" placeholder="Video, GIF veya Görsel URL'si...">
+                  <div class="file-upload-btn-wrapper">
+                    <label class="btn-secondary btn-sm" for="bg-file-input">
+                      <i class="fa-solid fa-cloud-arrow-up"></i> Medya Yükle (Video/GIF/Görsel)
+                    </label>
+                    <input type="file" id="bg-file-input" accept="video/mp4,video/webm,image/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Arka Plan Bulanıklığı (Blur: <span id="blur-val-label">5px</span>)</label>
+                <input type="range" id="setting-bg-blur" min="0" max="25" step="1" value="5" class="slider-control">
+              </div>
+
+              <div class="form-group">
+                <label>Karartma Katmanı Opaklığı (<span id="overlay-val-label">%60</span>)</label>
+                <input type="range" id="setting-bg-overlay" min="0" max="0.9" step="0.05" value="0.6" class="slider-control">
+              </div>
+
+              <div class="form-group full-width">
+                <label>Giriş Perdesi Metni ("Click to Enter")</label>
+                <input type="text" id="setting-enter-text" class="form-control" placeholder="[ TIKLA VE GİRİŞ YAP ]">
+              </div>
+
+              <div class="form-group full-width">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-enter-overlay-enabled" checked>
+                  <span class="checkbox-custom"></span>
+                  Giriş perdesi (Click to Enter) aktif olsun <small style="color: var(--text-muted); font-size: 0.82rem; margin-left: 6px;">(Müziğin tarayıcı tarafından otomatik çalınabilmesi için açık tutulması önerilir)</small>
+                </label>
+              </div>
+
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Arka Planı Kaydet
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 4. AUDIO TAB -->
+        <section id="tab-audio" class="tab-pane">
+          <div class="pane-header">
+            <h2>Müzik & Ses Ayarları</h2>
+            <p>Sayfa açılışında çalan arka plan müziğini ve çaları yönetin</p>
+          </div>
+
+          <form id="audio-form" class="settings-form">
+            <div class="form-grid">
+
+              <div class="form-group full-width">
+                <label>Müzik Dosyası (MP3 / WAV / OGG) veya URL</label>
+                <div class="upload-controls">
+                  <input type="text" id="setting-audio-url" class="form-control" placeholder="https://.../song.mp3">
+                  <div class="file-upload-btn-wrapper">
+                    <label class="btn-secondary btn-sm" for="audio-file-input">
+                      <i class="fa-solid fa-cloud-arrow-up"></i> MP3 / Ses Dosyası Yükle
+                    </label>
+                    <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Albüm Kapağı / Özel Görsel (Opsiyonel)</label>
+                <div class="upload-controls">
+                  <input type="text" id="setting-audio-cover-url" class="form-control" placeholder="Görsel URL'si (Boş bırakılırsa varsayılan çalar ikonu kullanılır)...">
+                  <div class="file-upload-btn-wrapper">
+                    <label class="btn-secondary btn-sm" for="audio-cover-file-input">
+                      <i class="fa-solid fa-cloud-arrow-up"></i> Albüm Kapağı Yükle
+                    </label>
+                    <input type="file" id="audio-cover-file-input" accept="image/*" style="display: none;">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Şarkı Başlığı</label>
+                <input type="text" id="setting-audio-title" class="form-control" placeholder="Örn: Midnight Resonance">
+              </div>
+
+              <div class="form-group">
+                <label>Sanatçı Adı</label>
+                <input type="text" id="setting-audio-artist" class="form-control" placeholder="Örn: Synthwave Beats">
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-audio-autoplay">
+                  <span class="checkbox-custom"></span>
+                  Giriş tıklandığında otomatik çalmaya başla
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-show-audio-player">
+                  <span class="checkbox-custom"></span>
+                  Müzik çalar çubuğunu göster
+                </label>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Açılış Başlangıç Ses Seviyesi (<span id="audio-volume-val">50%</span>)</label>
+                <input type="range" id="setting-audio-volume" min="0" max="100" step="5" value="50" class="slider-control">
+                <span class="field-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                  Ziyaretçi siteye girdiğinde müziğin hangi ses seviyesinde (%0 - %100) başlayacağını belirleyin.
+                </span>
+              </div>
+
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Ses Ayarlarını Kaydet
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 5. TYPEWRITER TAB -->
+        <section id="tab-typewriter" class="tab-pane">
+          <div class="pane-header">
+            <h2>Typewriter (Dönen Yazılar) Ayarları</h2>
+            <p>Profil fotoğrafının altında sırayla harf harf yazılıp silinen metinler</p>
+          </div>
+
+          <form id="typewriter-form" class="settings-form">
+            
+            <div class="admin-card mb-4">
+              <div class="typewriter-phrases-header">
+                <h3>Yazı Listesi</h3>
+                <button type="button" id="add-phrase-btn" class="btn-secondary btn-sm">
+                  <i class="fa-solid fa-plus"></i> Yeni Yazı Ekle
+                </button>
+              </div>
+              <div id="phrases-list-container" class="phrases-list-container">
+                <!-- Dynamic phrase inputs -->
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Yazma Hızı (<span id="type-speed-val">75ms</span>)</label>
+                <input type="range" id="setting-type-speed" min="20" max="200" step="5" value="75" class="slider-control">
+              </div>
+
+              <div class="form-group">
+                <label>Silme Hızı (<span id="delete-speed-val">40ms</span>)</label>
+                <input type="range" id="setting-delete-speed" min="10" max="100" step="5" value="40" class="slider-control">
+              </div>
+
+              <div class="form-group">
+                <label>Bekleme Süresi (<span id="delay-val-label">1800ms</span>)</label>
+                <input type="range" id="setting-type-delay" min="500" max="5000" step="100" value="1800" class="slider-control">
+              </div>
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Typewriter Ayarlarını Kaydet
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 6. LINKS & SOCIALS TAB -->
+        <section id="tab-links" class="tab-pane">
+          <div class="pane-header">
+            <div class="header-with-btn">
+              <div>
+                <h2>Sosyal Medya & Özel Linkler</h2>
+                <p>Logoları değiştirin, yeni bağlantılar ekleyin ve sıralamayı sürükleyerek ayarlayın</p>
+              </div>
+              <button id="open-add-link-modal-btn" class="btn-primary">
+                <i class="fa-solid fa-plus"></i> Yeni Link Ekle
+              </button>
+            </div>
+          </div>
+
+          <!-- Link Color & Glow Appearance Settings Card -->
+          <div class="admin-card mb-4">
+            <div class="links-section-header">
+              <h3><i class="fa-solid fa-palette"></i> İkon Renk & Glow (Neon Işıma) Ayarları</h3>
+              <span class="section-hint">Tüm sosyal medya ve özel linklerin renk ve ışıma tarzını topluca belirleyin</span>
+            </div>
+
+            <form id="link-appearance-form" class="settings-form mt-3">
+              <div class="form-grid">
+                
+                <div class="form-group">
+                  <label>İkon Renk Modu</label>
+                  <select id="setting-link-color-mode" class="form-control">
+                    <option value="original">🎨 Orijinal Logo / Marka Renkleri (Logo seçimindeki renkler)</option>
+                    <option value="custom">🎯 Seçilen Tek Renk (Belirlenen özel renk)</option>
+                  </select>
+                </div>
+
+                <div class="form-group" id="link-custom-color-group" style="display: none;">
+                  <label>Seçilen Tek Renk</label>
+                  <div class="color-picker-group">
+                    <input type="color" id="setting-link-custom-color" class="color-input" value="#ffffff">
+                    <input type="text" id="setting-link-custom-color-text" class="form-control color-text" value="#ffffff">
+                  </div>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="checkbox-container">
+                    <input type="checkbox" id="setting-link-glow-enabled" checked>
+                    <span class="checkbox-custom"></span>
+                    İkonlarda Neon Glow / Işıma Efektini Etkinleştir (Kapatıldığında sade/düz görünür)
+                  </label>
+                </div>
+
+              </div>
+
+              <div class="form-footer mt-2" style="padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+                <button type="submit" class="btn-primary btn-sm">
+                  <i class="fa-solid fa-floppy-disk"></i> Renk & Glow Ayarlarını Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Social Links Subsection -->
+          <div class="admin-card mb-4">
+            <div class="links-section-header">
+              <h3><i class="fa-solid fa-share-nodes"></i> Sosyal Medya İkon Çubuğu</h3>
+              <span class="section-hint">Sıralamak için kartları sürükleyip bırakın</span>
+            </div>
+            <div id="social-links-sortable" class="sortable-links-list">
+              <!-- Dynamic social links -->
+            </div>
+          </div>
+
+          <!-- Custom Links Subsection -->
+          <div class="admin-card">
+            <div class="links-section-header">
+              <h3><i class="fa-solid fa-rectangle-list"></i> Özel Kart Bağlantıları</h3>
+              <span class="section-hint">Sıralamak için kartları sürükleyip bırakın</span>
+            </div>
+            <div id="custom-links-sortable" class="sortable-links-list">
+              <!-- Dynamic custom links -->
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. THEME TAB -->
+        <section id="tab-theme" class="tab-pane">
+          <div class="pane-header">
+            <h2>Tema & Görsel Efektler</h2>
+            <p>Vurgu renkleri, parçacık animasyonları ve imleç efektleri</p>
+          </div>
+
+          <form id="theme-form" class="settings-form">
+            <div class="form-grid">
+
+              <div class="form-group">
+                <label>Ana Vurgu (Neon) Rengi</label>
+                <div class="color-picker-group">
+                  <input type="color" id="setting-accent-color" class="color-input">
+                  <input type="text" id="setting-accent-color-text" class="form-control color-text">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Parçacık Efekti</label>
+                <select id="setting-particles-effect" class="form-control">
+                  <option value="none">Kapalı</option>
+                  <option value="snow">❄️ Kar Yağışı (Snow)</option>
+                  <option value="stars">✨ Yıldızlar & Meteorlar (Twinkling Stars)</option>
+                  <option value="fireflies">🔥 Neon Korlar & Ateşböcekleri (Fireflies)</option>
+                  <option value="rain">🌧️ Siber Yağmur (Cyber Rain)</option>
+                  <option value="matrix">💻 Matrix Dijital Yağmur</option>
+                  <option value="cosmic">🪐 Kozmik Toz & Nebula (Cosmic Dust)</option>
+                </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-show-card" checked>
+                  <span class="checkbox-custom"></span>
+                  Profil Kartını Göster (macOS Liquid Glass Arka Planı)
+                </label>
+              </div>
+
+              <div class="form-group" id="card-blur-group">
+                <label>Kart Bulanıklığı (<span id="card-blur-val">25px</span>)</label>
+                <input type="range" id="setting-card-blur" min="0" max="50" step="2" value="25" class="slider-control">
+              </div>
+
+              <div class="form-group" id="card-opacity-group">
+                <label>Kart Opaklığı (<span id="card-opacity-val">%15</span>)</label>
+                <input type="range" id="setting-card-opacity" min="0.02" max="0.9" step="0.02" value="0.15" class="slider-control">
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-cursor-trail">
+                  <span class="checkbox-custom"></span>
+                  Fareyi takip eden neon ışıltı (Cursor Trail)
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-container">
+                  <input type="checkbox" id="setting-show-view-counter">
+                  <span class="checkbox-custom"></span>
+                  Biolink sayfasında ziyaretçi sayacı rozetini göster
+                </label>
+              </div>
+
+            </div>
+
+            <div class="form-footer">
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-floppy-disk"></i> Tema Ayarlarını Kaydet
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <!-- 8. SECURITY & BACKUP TAB -->
+        <section id="tab-security" class="tab-pane">
+          <div class="pane-header">
+            <h2>Güvenlik & Yedekleme</h2>
+            <p>Admin şifresini değiştirin, tüm konfigürasyonu dışa/içe aktarın</p>
+          </div>
+
+          <!-- Password Change Form -->
+          <div class="admin-card mb-4">
+            <h3><i class="fa-solid fa-key"></i> Şifre Değiştir</h3>
+            <form id="password-form" class="settings-form">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Mevcut Şifre</label>
+                  <input type="password" id="pass-current" class="form-control" required autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                  <label>Yeni Şifre (En az 6 karakter)</label>
+                  <input type="password" id="pass-new" class="form-control" required minlength="6" autocomplete="new-password">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">
+                <i class="fa-solid fa-lock"></i> Şifreyi Güncelle
+              </button>
+            </form>
+          </div>
+
+          <!-- Security Audit Log & Failed Login Attempts -->
+          <div class="admin-card mb-4">
+            <div class="links-section-header" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3><i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i> Güvenlik Denetim Günlüğü (Giriş Denemeleri)</h3>
+                <span class="section-hint">Admin paneline yapılan tüm başarılı, hatalı ve engellenen IP giriş denemeleri</span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" id="refresh-security-logs-btn" class="btn-secondary btn-sm" title="Yenile">
+                  <i class="fa-solid fa-rotate-right"></i> Yenile
+                </button>
+                <button type="button" id="clear-security-logs-btn" class="btn-danger btn-sm" title="Günlüğü Temizle">
+                  <i class="fa-solid fa-trash"></i> Günlüğü Temizle
+                </button>
+              </div>
+            </div>
+
+            <!-- Security Quick Stats -->
+            <div class="security-stats-row mt-3 mb-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
+              <div class="stat-mini-pill" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 12px 16px;">
+                <span style="font-size: 0.8rem; color: #fca5a5; display: block; font-weight: 500;">Hatalı / Engellenen</span>
+                <strong id="sec-stat-failed" style="font-size: 1.4rem; color: #ef4444; font-family: var(--font-mono);">0</strong>
+              </div>
+              <div class="stat-mini-pill" style="background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 12px 16px;">
+                <span style="font-size: 0.8rem; color: #86efac; display: block; font-weight: 500;">Başarılı Girişler</span>
+                <strong id="sec-stat-success" style="font-size: 1.4rem; color: #22c55e; font-family: var(--font-mono);">0</strong>
+              </div>
+              <div class="stat-mini-pill" style="background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: 12px; padding: 12px 16px;">
+                <span style="font-size: 0.8rem; color: #fde047; display: block; font-weight: 500;">Şu An Kilitli IP'ler</span>
+                <strong id="sec-stat-locked" style="font-size: 1.4rem; color: #eab308; font-family: var(--font-mono);">0</strong>
+              </div>
+            </div>
+
+            <!-- Logs Table -->
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Durum</th>
+                    <th>Tarih & Saat</th>
+                    <th>IP Adresi</th>
+                    <th>Denenen Kullanıcı</th>
+                    <th>Cihaz / Tarayıcı</th>
+                    <th>Açıklama</th>
+                  </tr>
+                </thead>
+                <tbody id="security-logs-tbody">
+                  <!-- Dynamic security log rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Backup & Restore -->
+          <div class="admin-card mb-4">
+            <h3><i class="fa-solid fa-database"></i> Yedekleme & Geri Yükleme</h3>
+            <p class="card-desc">Tüm profil ayarlarınızı, linklerinizi ve temayı tek tıkla JSON olarak yedekleyin veya geri yükleyin.</p>
+            
+            <div class="backup-actions">
+              <a href="/api/admin/export" class="btn-secondary" download="guns_biolink_backup.json">
+                <i class="fa-solid fa-download"></i> Yedek Dosyasını İndir (Export)
+              </a>
+
+              <div class="file-upload-btn-wrapper">
+                <label class="btn-secondary" for="import-file-input">
+                  <i class="fa-solid fa-upload"></i> Yedekten Geri Yükle (Import)
+                </label>
+                <input type="file" id="import-file-input" accept=".json" style="display: none;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Reset Analytics -->
+          <div class="admin-card danger-card">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> İstatistikleri Sıfırla</h3>
+            <p class="card-desc">Tüm ziyaret ve link tıklama kayıtlarını temizler. Bu işlem geri alınamaz.</p>
+            <button type="button" id="reset-analytics-btn" class="btn-danger">
+              <i class="fa-solid fa-trash-can"></i> Tüm İstatistikleri Sıfırla
+            </button>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Right Side Live Preview Container -->
+      <aside id="preview-sidebar" class="preview-sidebar">
+        <div class="preview-header">
+          <span><i class="fa-solid fa-eye"></i> Canlı Önizleme</span>
+          <button id="refresh-preview-btn" class="btn-icon" title="Yenile">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+        <div class="phone-frame">
+          <iframe id="preview-iframe" src="/" title="Live Preview"></iframe>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <!-- Link Add / Edit Modal -->
+  <div id="link-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Yeni Link Ekle</h3>
+        <button id="close-modal-btn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <form id="link-form" class="modal-form">
+        <input type="hidden" id="modal-link-id">
+
+        <div class="form-group">
+          <label>Link Türü</label>
+          <select id="modal-link-type" class="form-control">
+            <option value="0">Özel Kart Bağlantısı (Açıklamalı & Buton)</option>
+            <option value="1">Sosyal Medya İkon Çubuğu</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Başlık</label>
+          <input type="text" id="modal-link-title" class="form-control" placeholder="Örn: Discord Sunucum" required>
+        </div>
+
+        <div class="form-group" id="modal-subtitle-group">
+          <label>Alt Başlık / Rozet Metni (Opsiyonel)</label>
+          <input type="text" id="modal-link-subtitle" class="form-control" placeholder="Örn: Topluluğumuza Katıl">
+        </div>
+
+        <div class="form-group">
+          <label>Hedef URL</label>
+          <input type="url" id="modal-link-url" class="form-control" placeholder="https://..." required>
+        </div>
+
+        <!-- Icon Selection -->
+        <div class="form-group">
+          <label>Logo / İkon Seçimi</label>
+          <div class="icon-picker-tabs">
+            <button type="button" class="tab-btn active" id="btn-preset-icons">Hazır İkonlar</button>
+            <button type="button" class="tab-btn" id="btn-custom-icon">Özel Logo / GIF Yükle</button>
+          </div>
+
+          <!-- Preset Icons Grid (Complete Set Matching Guns.lol / Biolink) -->
+          <div id="preset-icons-grid" class="preset-icons-grid" style="grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); max-height: 220px;">
+            <div class="icon-choice active" data-icon="snapchat"><i class="fa-brands fa-snapchat" style="color: #FFFC00;"></i><span>Snapchat</span></div>
+            <div class="icon-choice" data-icon="youtube"><i class="fa-brands fa-youtube" style="color: #FF0000;"></i><span>YouTube</span></div>
+            <div class="icon-choice" data-icon="discord"><i class="fa-brands fa-discord" style="color: #5865F2;"></i><span>Discord</span></div>
+            <div class="icon-choice" data-icon="spotify"><i class="fa-brands fa-spotify" style="color: #1DB954;"></i><span>Spotify</span></div>
+            <div class="icon-choice" data-icon="instagram"><i class="fa-brands fa-instagram" style="color: #E1306C;"></i><span>Instagram</span></div>
+            <div class="icon-choice" data-icon="twitter"><i class="fa-brands fa-x-twitter" style="color: #ffffff;"></i><span>X / Twitter</span></div>
+            <div class="icon-choice" data-icon="tiktok"><i class="fa-brands fa-tiktok" style="color: #ff0050;"></i><span>TikTok</span></div>
+            <div class="icon-choice" data-icon="telegram"><i class="fa-brands fa-telegram" style="color: #229ED9;"></i><span>Telegram</span></div>
+            <div class="icon-choice" data-icon="soundcloud"><i class="fa-brands fa-soundcloud" style="color: #FF5500;"></i><span>SoundCloud</span></div>
+            <div class="icon-choice" data-icon="paypal"><i class="fa-brands fa-paypal" style="color: #003087;"></i><span>PayPal</span></div>
+            <div class="icon-choice" data-icon="github"><i class="fa-brands fa-github" style="color: #ffffff;"></i><span>GitHub</span></div>
+            <div class="icon-choice" data-icon="roblox"><i class="fa-solid fa-cube" style="color: #ffffff;"></i><span>Roblox</span></div>
+            <div class="icon-choice" data-icon="cashapp"><i class="fa-solid fa-dollar-sign" style="color: #00D632;"></i><span>Cash App</span></div>
+            <div class="icon-choice" data-icon="venmo"><i class="fa-solid fa-v" style="color: #008CFF;"></i><span>Venmo</span></div>
+            <div class="icon-choice" data-icon="playstation"><i class="fa-brands fa-playstation" style="color: #003791;"></i><span>PSN</span></div>
+            <div class="icon-choice" data-icon="xbox"><i class="fa-brands fa-xbox" style="color: #107C10;"></i><span>Xbox</span></div>
+            <div class="icon-choice" data-icon="applemusic"><i class="fa-brands fa-apple" style="color: #FA243C;"></i><span>Apple Music</span></div>
+
+            <div class="icon-choice" data-icon="gitlab"><i class="fa-brands fa-gitlab" style="color: #FC6D26;"></i><span>GitLab</span></div>
+            <div class="icon-choice" data-icon="twitch"><i class="fa-brands fa-twitch" style="color: #9146FF;"></i><span>Twitch</span></div>
+            <div class="icon-choice" data-icon="reddit"><i class="fa-brands fa-reddit-alien" style="color: #FF4500;"></i><span>Reddit</span></div>
+            <div class="icon-choice" data-icon="vk"><i class="fa-brands fa-vk" style="color: #0077FF;"></i><span>VK</span></div>
+            <div class="icon-choice" data-icon="ngl"><i class="fa-solid fa-mask" style="color: #ff5555;"></i><span>NGL</span></div>
+            <div class="icon-choice" data-icon="bluesky"><i class="fa-solid fa-cloud" style="color: #0285FF;"></i><span>Bluesky</span></div>
+            <div class="icon-choice" data-icon="linkedin"><i class="fa-brands fa-linkedin-in" style="color: #0A66C2;"></i><span>LinkedIn</span></div>
+            <div class="icon-choice" data-icon="steam"><i class="fa-brands fa-steam" style="color: #ffffff;"></i><span>Steam</span></div>
+            <div class="icon-choice" data-icon="kick"><i class="fa-solid fa-bolt" style="color: #53FC18;"></i><span>Kick</span></div>
+            <div class="icon-choice" data-icon="pinterest"><i class="fa-brands fa-pinterest-p" style="color: #E60023;"></i><span>Pinterest</span></div>
+            <div class="icon-choice" data-icon="coffee"><i class="fa-solid fa-mug-hot" style="color: #FFDD00;"></i><span>Coffee / Ko-fi</span></div>
+
+            <div class="icon-choice" data-icon="facebook"><i class="fa-brands fa-facebook-f" style="color: #1877F2;"></i><span>Facebook</span></div>
+            <div class="icon-choice" data-icon="threads"><i class="fa-brands fa-threads" style="color: #ffffff;"></i><span>Threads</span></div>
+            <div class="icon-choice" data-icon="patreon"><i class="fa-brands fa-patreon" style="color: #FF424D;"></i><span>Patreon</span></div>
+            <div class="icon-choice" data-icon="signal"><i class="fa-solid fa-comment-dots" style="color: #3A76F0;"></i><span>Signal</span></div>
+            <div class="icon-choice" data-icon="bitcoin"><i class="fa-brands fa-bitcoin" style="color: #F7931A;"></i><span>Bitcoin</span></div>
+            <div class="icon-choice" data-icon="ethereum"><i class="fa-brands fa-ethereum" style="color: #627EEA;"></i><span>Ethereum</span></div>
+            <div class="icon-choice" data-icon="litecoin"><i class="fa-solid fa-litecoin-sign" style="color: #345D9D;"></i><span>Litecoin</span></div>
+            <div class="icon-choice" data-icon="solana"><i class="fa-solid fa-cubes" style="color: #14F195;"></i><span>Solana</span></div>
+            <div class="icon-choice" data-icon="monero"><i class="fa-brands fa-monero" style="color: #FF6600;"></i><span>Monero</span></div>
+            <div class="icon-choice" data-icon="envelope"><i class="fa-solid fa-envelope" style="color: #ffffff;"></i><span>Mail</span></div>
+            <div class="icon-choice" data-icon="shield"><i class="fa-solid fa-shield-halved" style="color: #38bdf8;"></i><span>Shield</span></div>
+            <div class="icon-choice" data-icon="globe"><i class="fa-solid fa-globe" style="color: #ffffff;"></i><span>Web / URL</span></div>
+          </div>
+
+          <!-- Custom Icon Upload / URL -->
+          <div id="custom-icon-box" class="custom-icon-box" style="display: none;">
+            <input type="text" id="modal-custom-icon-url" class="form-control mb-2" placeholder="Logo veya GIF URL'si...">
+            <div class="file-upload-btn-wrapper">
+              <label class="btn-secondary btn-sm" for="link-icon-file-input">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Özel Logo / GIF Yükle
+              </label>
+              <input type="file" id="link-icon-file-input" accept="image/*" style="display: none;">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Özel Vurgu / Glow Rengi</label>
+          <div class="color-picker-group">
+            <input type="color" id="modal-link-glow" class="color-input" value="#8b5cf6">
+            <input type="text" id="modal-link-glow-text" class="form-control color-text" value="#8b5cf6">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancel-link-btn" class="btn-secondary">İptal</button>
+          <button type="submit" class="btn-primary" id="save-link-btn">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Admin JavaScript -->
+  <script src="/js/admin.js?v=5.1.0"></script>
+</body>
+</html>
