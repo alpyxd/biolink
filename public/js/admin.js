@@ -276,6 +276,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Profile Form
     safeSet('setting-avatar-url', 'value', s.avatar_url || '');
     safeSet('avatar-preview-img', 'src', s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400');
+    safeSet('setting-favicon-url', 'value', s.favicon_url || '');
+    if (s.favicon_url) {
+      safeSet('favicon-preview-img', 'src', s.favicon_url);
+    }
     safeSet('setting-display-name', 'value', s.display_name || '');
     safeSet('setting-username', 'value', s.username ? s.username.replace(/^@/, '') : '');
     safeSet('setting-location', 'value', s.location || '');
@@ -317,6 +321,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let phrases = ['server.alpay.fun', 'alpay.fun'];
     try { phrases = typeof s.typewriter_phrases === 'string' ? JSON.parse(s.typewriter_phrases) : (s.typewriter_phrases || phrases); } catch {}
     renderPhrasesList(phrases);
+
+    // Tab Title & Tab Typewriter
+    safeSet('setting-tab-title', 'value', s.tab_title || '');
+    safeSet('setting-tab-typewriter-enabled', 'checked', String(s.tab_typewriter_enabled) !== '0');
+    let tabPhrases = ['alpay.fun', 'server.alpay.fun', 'cyber biolink'];
+    try {
+      tabPhrases = typeof s.tab_typewriter_phrases === 'string' ? JSON.parse(s.tab_typewriter_phrases) : (s.tab_typewriter_phrases || tabPhrases);
+    } catch {}
+    renderTabPhrasesList(tabPhrases);
 
     safeSet('setting-type-speed', 'value', s.typewriter_speed || 75);
     safeText('type-speed-val', `${s.typewriter_speed || 75}ms`);
@@ -446,6 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const payload = {
       avatar_url: document.getElementById('setting-avatar-url').value,
+      favicon_url: document.getElementById('setting-favicon-url') ? document.getElementById('setting-favicon-url').value : '',
       display_name: document.getElementById('setting-display-name').value,
       username: document.getElementById('setting-username').value,
       location: document.getElementById('setting-location').value,
@@ -493,11 +507,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const phraseInputs = document.querySelectorAll('.phrase-input');
     const phrases = Array.from(phraseInputs).map(inp => inp.value.trim()).filter(v => v.length > 0);
 
+    const tabPhraseInputs = document.querySelectorAll('.tab-phrase-input');
+    const tabPhrases = Array.from(tabPhraseInputs).map(inp => inp.value.trim()).filter(v => v.length > 0);
+
     const payload = {
       typewriter_phrases: JSON.stringify(phrases),
       typewriter_speed: document.getElementById('setting-type-speed').value,
       typewriter_delete_speed: document.getElementById('setting-delete-speed').value,
-      typewriter_delay: document.getElementById('setting-type-delay').value
+      typewriter_delay: document.getElementById('setting-type-delay').value,
+      tab_title: document.getElementById('setting-tab-title') ? document.getElementById('setting-tab-title').value : '',
+      tab_typewriter_enabled: document.getElementById('setting-tab-typewriter-enabled')?.checked ? '1' : '0',
+      tab_typewriter_phrases: JSON.stringify(tabPhrases)
     };
     saveSettingsPayload(payload);
   });
@@ -531,18 +551,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- Typewriter Dynamic Phrase List ---
+  // --- Typewriter Dynamic Phrase List (Profile) ---
   const phrasesContainer = document.getElementById('phrases-list-container');
   const addPhraseBtn = document.getElementById('add-phrase-btn');
 
   function renderPhrasesList(phrases) {
+    if (!phrasesContainer) return;
     phrasesContainer.innerHTML = '';
-    phrases.forEach((phrase) => {
+    (phrases || []).forEach((phrase) => {
       addPhraseRow(phrase);
     });
   }
 
   function addPhraseRow(val = '') {
+    if (!phrasesContainer) return;
     const row = document.createElement('div');
     row.className = 'phrase-row';
     row.innerHTML = `
@@ -555,14 +577,63 @@ document.addEventListener('DOMContentLoaded', () => {
     phrasesContainer.appendChild(row);
   }
 
-  addPhraseBtn.addEventListener('click', () => addPhraseRow(''));
+  if (addPhraseBtn) {
+    addPhraseBtn.addEventListener('click', () => addPhraseRow(''));
+  }
 
-  // --- File Upload Handlers (Avatar, Background, Audio, Custom Icon) ---
+  // --- Typewriter Dynamic Phrase List (Browser Tab Title) ---
+  const tabPhrasesContainer = document.getElementById('tab-phrases-list-container');
+  const addTabPhraseBtn = document.getElementById('add-tab-phrase-btn');
+
+  function renderTabPhrasesList(phrases) {
+    if (!tabPhrasesContainer) return;
+    tabPhrasesContainer.innerHTML = '';
+    (phrases || []).forEach((phrase) => {
+      addTabPhraseRow(phrase);
+    });
+  }
+
+  function addTabPhraseRow(val = '') {
+    if (!tabPhrasesContainer) return;
+    const row = document.createElement('div');
+    row.className = 'phrase-row';
+    row.innerHTML = `
+      <input type="text" class="form-control tab-phrase-input" value="${escapeHtml(val)}" placeholder="Sekmede yazılacak metin...">
+      <button type="button" class="btn-icon btn-remove-phrase" title="Sil"><i class="fa-solid fa-trash"></i></button>
+    `;
+    row.querySelector('.btn-remove-phrase').addEventListener('click', () => {
+      row.remove();
+    });
+    tabPhrasesContainer.appendChild(row);
+  }
+
+  if (addTabPhraseBtn) {
+    addTabPhraseBtn.addEventListener('click', () => addTabPhraseRow(''));
+  }
+
+  // --- File Upload Handlers (Avatar, Favicon, Background, Audio, Custom Icon) ---
   setupFileUpload('avatar-file-input', (url) => {
     document.getElementById('setting-avatar-url').value = url;
     document.getElementById('avatar-preview-img').src = url;
     showToast('Avatar yüklendi!', 'success');
   });
+
+  setupFileUpload('favicon-file-input', (url) => {
+    document.getElementById('setting-favicon-url').value = url;
+    const prev = document.getElementById('favicon-preview-img');
+    if (prev) prev.src = url;
+    showToast('Favicon yüklendi!', 'success');
+  });
+
+  const favUrlInp = document.getElementById('setting-favicon-url');
+  if (favUrlInp) {
+    favUrlInp.addEventListener('input', (e) => {
+      const prev = document.getElementById('favicon-preview-img');
+      if (prev && e.target.value.trim()) {
+        prev.src = e.target.value.trim();
+      }
+    });
+  }
 
   setupFileUpload('bg-file-input', (url) => {
     document.getElementById('setting-bg-url').value = url;

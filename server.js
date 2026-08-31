@@ -99,6 +99,14 @@ const defaultSettings = {
   avatar_glow: '#8b5cf6',
   badges: JSON.stringify(['diamond']),
   location: 'turkiga',
+  favicon_url: '',
+  tab_title: 'alpay.fun',
+  tab_typewriter_enabled: '1',
+  tab_typewriter_phrases: JSON.stringify([
+    'alpay.fun',
+    'server.alpay.fun',
+    'cyber biolink'
+  ]),
 
   // Background
   bg_type: 'video', // 'video', 'gif', 'image', 'color'
@@ -787,7 +795,7 @@ const server = http.createServer(async (req, res) => {
 
         // Strict extension whitelist (Excludes .svg to prevent Stored XSS attacks)
         const rawExt = path.extname(filePart.filename).toLowerCase();
-        const allowedExts = ['.mp4', '.webm', '.gif', '.png', '.jpg', '.jpeg', '.webp', '.mp3', '.wav', '.ogg'];
+        const allowedExts = ['.mp4', '.webm', '.gif', '.png', '.jpg', '.jpeg', '.webp', '.ico', '.mp3', '.wav', '.ogg'];
         if (!allowedExts.includes(rawExt)) {
           return sendJSON(res, { error: 'Desteklenmeyen dosya türü! Yalnızca güvenli görsel, video ve ses dosyaları yüklenebilir.' }, 400);
         }

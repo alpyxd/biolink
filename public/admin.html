@@ -240,6 +240,26 @@
                 </div>
               </div>
 
+              <!-- Favicon Uploader -->
+              <div class="form-group full-width">
+                <label>Sekme İkonu (Favicon)</label>
+                <div class="avatar-upload-box" style="align-items: center;">
+                  <img id="favicon-preview-img" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23a855f7'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" alt="Favicon Preview" style="width: 44px; height: 44px; border-radius: 10px; object-fit: contain; background: rgba(255,255,255,0.05); padding: 4px; border: 1px solid rgba(255,255,255,0.1);">
+                  <div class="upload-controls">
+                    <input type="text" id="setting-favicon-url" placeholder="Favicon URL'si veya dosya yükleyin (.ico, .png, .gif, .webp)..." class="form-control">
+                    <div class="file-upload-btn-wrapper">
+                      <label class="btn-secondary btn-sm" for="favicon-file-input">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Favicon Yükle (.ico / .png / .gif)
+                      </label>
+                      <input type="file" id="favicon-file-input" accept=".ico,.png,.jpg,.jpeg,.gif,.webp,image/*" style="display: none;">
+                    </div>
+                  </div>
+                </div>
+                <span class="field-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                  Tarayıcı sekmesinde görünen küçük sayfa simgesi (Favicon).
+                </span>
+              </div>
+
               <div class="form-group">
                 <label>Görünen Ad</label>
                 <input type="text" id="setting-display-name" class="form-control" placeholder="Örn: Alpay">
@@ -475,13 +495,54 @@
             
             <div class="admin-card mb-4">
               <div class="typewriter-phrases-header">
-                <h3>Yazı Listesi</h3>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.05rem;"><i class="fa-solid fa-align-left"></i> Profil Dönen Yazı Listesi</h3>
+                  <span style="font-size: 0.78rem; color: var(--text-muted);">Profil avatarının hemen altında sırayla yazılıp silinecek metinler</span>
+                </div>
                 <button type="button" id="add-phrase-btn" class="btn-secondary btn-sm">
                   <i class="fa-solid fa-plus"></i> Yeni Yazı Ekle
                 </button>
               </div>
               <div id="phrases-list-container" class="phrases-list-container">
                 <!-- Dynamic phrase inputs -->
+              </div>
+            </div>
+
+            <!-- Tab / Page Title Typewriter Card -->
+            <div class="admin-card mb-4">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 12px;">
+                <div>
+                  <h3 style="margin: 0; font-size: 1.05rem;"><i class="fa-solid fa-window-maximize"></i> Tarayıcı Sekme / Sayfa Başlığı</h3>
+                  <p style="margin: 3px 0 0; font-size: 0.8rem; color: var(--text-muted);">Tarayıcı sekmesinde görünen başlığı ve daktilo animasyonunu ayarlayın</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Sekme Animasyonu</span>
+                  <label class="toggle-switch" title="Sekme Typewriter Efektini Aç/Kapat">
+                    <input type="checkbox" id="setting-tab-typewriter-enabled" checked>
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group mb-3">
+                <label>Varsayılan / Sabit Sekme Başlığı</label>
+                <input type="text" id="setting-tab-title" class="form-control" placeholder="Örn: alpay.fun">
+                <span class="field-hint" style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                  Sekme animasyonu kapalıyken veya yedek olarak tarayıcı sekmesinde bu başlık görünür.
+                </span>
+              </div>
+
+              <div class="typewriter-phrases-header" style="margin-top: 16px;">
+                <div>
+                  <h4 style="font-size: 0.92rem; font-weight: 600; color: #fff; margin: 0;">Sekme Başlığı Dönen Yazı Listesi</h4>
+                  <span style="font-size: 0.76rem; color: var(--text-muted);">Sekmede harf harf dönecek metinler (Boş bırakılırsa profil yazıları kullanılır)</span>
+                </div>
+                <button type="button" id="add-tab-phrase-btn" class="btn-secondary btn-sm">
+                  <i class="fa-solid fa-plus"></i> Yeni Sekme Yazısı Ekle
+                </button>
+              </div>
+              <div id="tab-phrases-list-container" class="phrases-list-container" style="margin-top: 10px;">
+                <!-- Dynamic tab phrase inputs -->
               </div>
             </div>
 

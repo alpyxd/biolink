@@ -47,6 +47,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   let charIndex = 0;
   let isDeleting = false;
 
+  // Browser Tab Title Typewriter State
+  let tabTypewriterTimeout = null;
+  let tabPhraseIndex = 0;
+  let tabCharIndex = 0;
+  let tabIsDeleting = false;
+
   // Canvas engine state (must be declared before any await so they're initialized before use)
   let cursorRafId = null;
   let cursorCanvasRafId = null;
@@ -249,8 +255,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       profileContainer.classList.add('loaded');
     }
 
-    // Document Title & Identity
-    document.title = `${settings.display_name || 'Alpay'} | alpay.fun`;
+    // Document Title, Favicon & Tab Typewriter
+    setupTabTitleAndFavicon(settings);
 
     const nameEl = document.getElementById('display-name-text');
     if (nameEl) {
@@ -436,6 +442,94 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     typeStep();
+  }
+
+  // --- Browser Tab Title & Favicon Engine ---
+  function setupTabTitleAndFavicon(settings) {
+    if (tabTypewriterTimeout) clearTimeout(tabTypewriterTimeout);
+
+    // 1. Favicon Setup
+    let faviconLink = document.getElementById('site-favicon') || document.querySelector("link[rel*='icon']");
+    if (settings.favicon_url && settings.favicon_url.trim() !== '') {
+      if (!faviconLink) {
+        faviconLink = document.createElement('link');
+        faviconLink.id = 'site-favicon';
+        faviconLink.rel = 'icon';
+        document.head.appendChild(faviconLink);
+      }
+      faviconLink.href = settings.favicon_url;
+    }
+
+    // 2. Tab Title & Typewriter
+    const isTabTypewriter = String(settings.tab_typewriter_enabled) !== '0';
+    const staticTitle = (settings.tab_title && settings.tab_title.trim() !== '')
+      ? settings.tab_title
+      : (settings.display_name ? `${settings.display_name} | alpay.fun` : 'alpay.fun');
+
+    if (!isTabTypewriter) {
+      document.title = staticTitle;
+      return;
+    }
+
+    // Parse tab typewriter phrases
+    let tabPhrases = [];
+    try {
+      if (typeof settings.tab_typewriter_phrases === 'string') {
+        tabPhrases = JSON.parse(settings.tab_typewriter_phrases);
+      } else if (Array.isArray(settings.tab_typewriter_phrases)) {
+        tabPhrases = settings.tab_typewriter_phrases;
+      }
+    } catch {}
+
+    // Fallback to profile phrases or staticTitle if tabPhrases is empty
+    if (!tabPhrases || tabPhrases.length === 0) {
+      try {
+        if (typeof settings.typewriter_phrases === 'string') {
+          tabPhrases = JSON.parse(settings.typewriter_phrases);
+        } else if (Array.isArray(settings.typewriter_phrases)) {
+          tabPhrases = settings.typewriter_phrases;
+        }
+      } catch {}
+    }
+
+    if (!tabPhrases || tabPhrases.length === 0) {
+      tabPhrases = [staticTitle];
+    }
+
+    tabPhraseIndex = 0;
+    tabCharIndex = 0;
+    tabIsDeleting = false;
+
+    const typeSpeed = parseInt(settings.typewriter_speed, 10) || 85;
+    const deleteSpeed = parseInt(settings.typewriter_delete_speed, 10) || 45;
+    const delay = parseInt(settings.typewriter_delay, 10) || 2000;
+
+    function tabTypeStep() {
+      const currentPhrase = tabPhrases[tabPhraseIndex % tabPhrases.length];
+
+      if (tabIsDeleting) {
+        tabCharIndex--;
+        document.title = currentPhrase.substring(0, tabCharIndex) || ' ';
+        if (tabCharIndex <= 0) {
+          tabIsDeleting = false;
+          tabPhraseIndex++;
+          tabTypewriterTimeout = setTimeout(tabTypeStep, 350);
+          return;
+        }
+        tabTypewriterTimeout = setTimeout(tabTypeStep, deleteSpeed);
+      } else {
+        tabCharIndex++;
+        document.title = currentPhrase.substring(0, tabCharIndex);
+        if (tabCharIndex >= currentPhrase.length) {
+          tabIsDeleting = true;
+          tabTypewriterTimeout = setTimeout(tabTypeStep, delay);
+          return;
+        }
+        tabTypewriterTimeout = setTimeout(tabTypeStep, typeSpeed);
+      }
+    }
+
+    tabTypeStep();
   }
 
   // --- Render Social & Custom Links ---
