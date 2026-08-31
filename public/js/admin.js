@@ -56,6 +56,54 @@ document.addEventListener('DOMContentLoaded', () => {
     heart: 'fa-solid fa-heart'
   };
 
+  // Brand / Official Logo Colors Dictionary
+  const BRAND_COLOR_MAP = {
+    snapchat: '#FFFC00',
+    youtube: '#FF0000',
+    discord: '#5865F2',
+    spotify: '#1DB954',
+    instagram: '#E1306C',
+    twitter: '#ffffff',
+    tiktok: '#ff0050',
+    telegram: '#229ED9',
+    soundcloud: '#FF5500',
+    paypal: '#0079C1',
+    github: '#ffffff',
+    roblox: '#ffffff',
+    cashapp: '#00D632',
+    venmo: '#008CFF',
+    playstation: '#003791',
+    xbox: '#107C10',
+    applemusic: '#FA243C',
+    gitlab: '#FC6D26',
+    twitch: '#9146FF',
+    reddit: '#FF4500',
+    vk: '#0077FF',
+    ngl: '#ff5555',
+    bluesky: '#0285FF',
+    linkedin: '#0A66C2',
+    steam: '#ffffff',
+    kick: '#53FC18',
+    pinterest: '#E60023',
+    coffee: '#FFDD00',
+    facebook: '#1877F2',
+    threads: '#ffffff',
+    patreon: '#FF424D',
+    signal: '#3A76F0',
+    bitcoin: '#F7931A',
+    ethereum: '#627EEA',
+    litecoin: '#345D9D',
+    solana: '#14F195',
+    monero: '#FF6600',
+    envelope: '#ffffff',
+    shield: '#38bdf8',
+    globe: '#ffffff',
+    gamepad: '#a855f7',
+    code: '#22c55e',
+    music: '#ec4899',
+    heart: '#ef4444'
+  };
+
   // --- Auth Check ---
   checkAuth();
 
@@ -83,6 +131,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadAllData();
   }
 
+  // --- Password Reveal Toggle ---
+  const togglePassBtn = document.getElementById('toggle-pass-btn');
+  const passInput = document.getElementById('login-password');
+  const passIcon = document.getElementById('toggle-pass-icon');
+  if (togglePassBtn && passInput && passIcon) {
+    togglePassBtn.addEventListener('click', () => {
+      const isPass = passInput.type === 'password';
+      passInput.type = isPass ? 'text' : 'password';
+      passIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    });
+  }
+
   // --- Login Form Submission ---
   const loginForm = document.getElementById('login-form');
   loginForm.addEventListener('submit', async (e) => {
@@ -90,6 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     const errorEl = document.getElementById('login-error');
+    const errorText = document.getElementById('login-error-text');
+    const submitBtn = document.getElementById('login-submit-btn');
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Doğrulanıyor...</span>';
+    }
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -100,16 +167,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const data = await res.json();
       if (res.ok) {
-        errorEl.style.display = 'none';
+        if (errorEl) errorEl.style.display = 'none';
         showDashboard();
-        showToast('Giriş başarılı!', 'success');
+        showToast('Giriş başarılı! Hoş geldiniz.', 'success');
+        if (password === 'admin123') {
+          setTimeout(() => {
+            showToast('⚠️ Güvenlik: Varsayılan şifre (admin123) aktif! Lütfen Güvenlik & Yedekleme sekmesinden şifrenizi güncelleyin.', 'error');
+          }, 1200);
+        }
       } else {
-        errorEl.textContent = data.error || 'Giriş başarısız.';
-        errorEl.style.display = 'block';
+        const msg = data.error || 'Hatalı kullanıcı adı veya şifre!';
+        if (errorText) errorText.textContent = msg;
+        if (errorEl) {
+          errorEl.style.display = 'flex';
+          // Re-trigger shake animation
+          errorEl.style.animation = 'none';
+          errorEl.offsetHeight; /* trigger reflow */
+          errorEl.style.animation = null;
+        }
       }
     } catch (err) {
-      errorEl.textContent = 'Sunucuya bağlanılamadı.';
-      errorEl.style.display = 'block';
+      const msg = 'Sunucuya bağlanılamadı.';
+      if (errorText) errorText.textContent = msg;
+      if (errorEl) errorEl.style.display = 'flex';
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span>Yönetim Paneline Giriş Yap</span><i class="fa-solid fa-arrow-right-to-bracket"></i>';
+      }
     }
   });
 
@@ -135,6 +220,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (targetId === 'tab-dashboard') {
         loadAnalytics();
+      } else if (targetId === 'tab-security') {
+        loadSecurityLogs();
       }
     });
   });
@@ -158,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Load All Data ---
   async function loadAllData() {
-    await Promise.all([loadSettings(), loadLinks(), loadAnalytics()]);
+    await Promise.all([loadSettings(), loadLinks(), loadAnalytics(), loadSecurityLogs()]);
     initSortable();
   }
 
@@ -174,68 +261,101 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function safeSet(id, prop, val) {
+    const el = document.getElementById(id);
+    if (el) el[prop] = val;
+  }
+  function safeText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
   function populateSettingsForms(s) {
+    if (!s) return;
+
     // 1. Profile Form
-    document.getElementById('setting-avatar-url').value = s.avatar_url || '';
-    document.getElementById('avatar-preview-img').src = s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400';
-    document.getElementById('setting-display-name').value = s.display_name || '';
-    document.getElementById('setting-username').value = s.username ? s.username.replace(/^@/, '') : '';
-    document.getElementById('setting-location').value = s.location || '';
-    document.getElementById('setting-avatar-glow-enabled').checked = String(s.avatar_glow_enabled) !== '0';
-    document.getElementById('setting-avatar-glow').value = s.avatar_glow || '#8b5cf6';
-    document.getElementById('setting-avatar-glow-text').value = s.avatar_glow || '#8b5cf6';
-    document.getElementById('setting-bio').value = s.bio || '';
+    safeSet('setting-avatar-url', 'value', s.avatar_url || '');
+    safeSet('avatar-preview-img', 'src', s.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400');
+    safeSet('setting-display-name', 'value', s.display_name || '');
+    safeSet('setting-username', 'value', s.username ? s.username.replace(/^@/, '') : '');
+    safeSet('setting-location', 'value', s.location || '');
+    safeSet('setting-avatar-glow-enabled', 'checked', String(s.avatar_glow_enabled) !== '0');
+    safeSet('setting-avatar-glow', 'value', s.avatar_glow || '#8b5cf6');
+    safeSet('setting-avatar-glow-text', 'value', s.avatar_glow || '#8b5cf6');
+    safeSet('setting-bio', 'value', s.bio || '');
 
     // Badges
     let badges = [];
     try { badges = typeof s.badges === 'string' ? JSON.parse(s.badges) : (s.badges || []); } catch {}
     document.querySelectorAll('input[name="badges"]').forEach(cb => {
-      cb.checked = badges.includes(cb.value);
+      cb.checked = Array.isArray(badges) && badges.includes(cb.value);
     });
 
     // 2. Background Form
-    document.getElementById('setting-bg-type').value = s.bg_type || 'video';
-    document.getElementById('setting-bg-url').value = s.bg_url || '';
-    document.getElementById('setting-bg-blur').value = s.bg_blur || 5;
-    document.getElementById('blur-val-label').textContent = `${s.bg_blur || 5}px`;
-    document.getElementById('setting-bg-overlay').value = s.bg_overlay_opacity !== undefined ? s.bg_overlay_opacity : 0.6;
-    document.getElementById('overlay-val-label').textContent = `%${Math.round((s.bg_overlay_opacity || 0.6) * 100)}`;
-    document.getElementById('setting-enter-text').value = s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]';
-    const enterProfileInp = document.getElementById('setting-enter-text-profile');
-    if (enterProfileInp) enterProfileInp.value = s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]';
-    document.getElementById('setting-enter-overlay-enabled').checked = String(s.enter_overlay_enabled) !== '0';
+    safeSet('setting-bg-type', 'value', s.bg_type || 'video');
+    safeSet('setting-bg-url', 'value', s.bg_url || '');
+    safeSet('setting-bg-blur', 'value', s.bg_blur !== undefined ? s.bg_blur : 5);
+    safeText('blur-val-label', `${s.bg_blur !== undefined ? s.bg_blur : 5}px`);
+    safeSet('setting-bg-overlay', 'value', s.bg_overlay_opacity !== undefined ? s.bg_overlay_opacity : 0.6);
+    safeText('overlay-val-label', `%${Math.round((s.bg_overlay_opacity !== undefined ? s.bg_overlay_opacity : 0.6) * 100)}`);
+    safeSet('setting-enter-text', 'value', s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]');
+    safeSet('setting-enter-text-profile', 'value', s.click_to_enter_text || '[ TIKLA VE GİRİŞ YAP ]');
+    safeSet('setting-enter-overlay-enabled', 'checked', String(s.enter_overlay_enabled) !== '0');
 
     // 3. Audio Form
-    document.getElementById('setting-audio-url').value = s.audio_url || '';
-    document.getElementById('setting-audio-cover-url').value = s.audio_cover_url || '';
-    document.getElementById('setting-audio-title').value = s.audio_title || '';
-    document.getElementById('setting-audio-artist').value = s.audio_artist || '';
-    document.getElementById('setting-audio-autoplay').checked = String(s.audio_autoplay) === '1' || s.audio_autoplay === true;
-    document.getElementById('setting-show-audio-player').checked = String(s.show_audio_player) !== '0';
+    safeSet('setting-audio-url', 'value', s.audio_url || '');
+    safeSet('setting-audio-cover-url', 'value', s.audio_cover_url || '');
+    safeSet('setting-audio-title', 'value', s.audio_title || '');
+    safeSet('setting-audio-artist', 'value', s.audio_artist || '');
+    safeSet('setting-audio-autoplay', 'checked', String(s.audio_autoplay) === '1' || s.audio_autoplay === true);
+    safeSet('setting-show-audio-player', 'checked', String(s.show_audio_player) !== '0');
+    const audVol = (s.audio_volume !== undefined && s.audio_volume !== '') ? s.audio_volume : 50;
+    safeSet('setting-audio-volume', 'value', audVol);
+    safeText('audio-volume-val', `%${audVol}`);
 
     // 4. Typewriter Form
     let phrases = ['server.alpay.fun', 'alpay.fun'];
     try { phrases = typeof s.typewriter_phrases === 'string' ? JSON.parse(s.typewriter_phrases) : (s.typewriter_phrases || phrases); } catch {}
     renderPhrasesList(phrases);
 
-    document.getElementById('setting-type-speed').value = s.typewriter_speed || 75;
-    document.getElementById('type-speed-val').textContent = `${s.typewriter_speed || 75}ms`;
-    document.getElementById('setting-delete-speed').value = s.typewriter_delete_speed || 40;
-    document.getElementById('delete-speed-val').textContent = `${s.typewriter_delete_speed || 40}ms`;
-    document.getElementById('setting-type-delay').value = s.typewriter_delay || 1800;
-    document.getElementById('delay-val-label').textContent = `${s.typewriter_delay || 1800}ms`;
+    safeSet('setting-type-speed', 'value', s.typewriter_speed || 75);
+    safeText('type-speed-val', `${s.typewriter_speed || 75}ms`);
+    safeSet('setting-delete-speed', 'value', s.typewriter_delete_speed || 40);
+    safeText('delete-speed-val', `${s.typewriter_delete_speed || 40}ms`);
+    safeSet('setting-type-delay', 'value', s.typewriter_delay || 1800);
+    safeText('delay-val-label', `${s.typewriter_delay || 1800}ms`);
 
     // 5. Theme Form
-    document.getElementById('setting-accent-color').value = s.accent_color || '#8b5cf6';
-    document.getElementById('setting-accent-color-text').value = s.accent_color || '#8b5cf6';
-    document.getElementById('setting-particles-effect').value = s.particles_effect || 'snow';
-    document.getElementById('setting-show-card').checked = String(s.show_card) !== '0';
-    document.getElementById('setting-card-blur').value = s.card_blur !== undefined ? s.card_blur : 25;
-    document.getElementById('card-blur-val').textContent = `${s.card_blur !== undefined ? s.card_blur : 25}px`;
-    document.getElementById('setting-card-opacity').value = s.card_opacity !== undefined ? s.card_opacity : 0.15;
-    document.getElementById('card-opacity-val').textContent = `%${Math.round((s.card_opacity !== undefined ? s.card_opacity : 0.15) * 100)}`;
-    document.getElementById('setting-cursor-trail').checked = String(s.cursor_trail) === '1' || s.cursor_trail === true;
-    document.getElementById('setting-show-view-counter').checked = String(s.show_view_counter) !== '0';
+    safeSet('setting-accent-color', 'value', s.accent_color || '#8b5cf6');
+    safeSet('setting-accent-color-text', 'value', s.accent_color || '#8b5cf6');
+    safeSet('setting-particles-effect', 'value', s.particles_effect || 'snow');
+    safeSet('setting-show-card', 'checked', String(s.show_card) !== '0');
+    safeSet('setting-card-blur', 'value', s.card_blur !== undefined ? s.card_blur : 25);
+    safeText('card-blur-val', `${s.card_blur !== undefined ? s.card_blur : 25}px`);
+    safeSet('setting-card-opacity', 'value', s.card_opacity !== undefined ? s.card_opacity : 0.15);
+    safeText('card-opacity-val', `%${Math.round((s.card_opacity !== undefined ? s.card_opacity : 0.15) * 100)}`);
+    safeSet('setting-cursor-trail', 'checked', String(s.cursor_trail) === '1' || s.cursor_trail === true);
+    safeSet('setting-show-view-counter', 'checked', String(s.show_view_counter) !== '0');
+
+    // 6. Link Appearance Form
+    const colorMode = s.link_color_mode || 'original';
+    safeSet('setting-link-color-mode', 'value', colorMode);
+    safeSet('setting-link-custom-color', 'value', s.link_custom_color || '#ffffff');
+    safeSet('setting-link-custom-color-text', 'value', s.link_custom_color || '#ffffff');
+    safeSet('setting-link-glow-enabled', 'checked', String(s.link_glow_enabled) !== '0');
+    const customColorGrp = document.getElementById('link-custom-color-group');
+    if (customColorGrp) {
+      customColorGrp.style.display = (colorMode === 'custom') ? 'block' : 'none';
+    }
+  }
+
+  // Link Color Mode Switch
+  const linkColorModeSelect = document.getElementById('setting-link-color-mode');
+  if (linkColorModeSelect) {
+    linkColorModeSelect.addEventListener('change', (e) => {
+      const grp = document.getElementById('link-custom-color-group');
+      if (grp) grp.style.display = (e.target.value === 'custom') ? 'block' : 'none';
+    });
   }
 
   // Sync enter text inputs
@@ -249,6 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- Dynamic Color Input Sync ---
   syncColorInputs('setting-avatar-glow', 'setting-avatar-glow-text');
   syncColorInputs('setting-accent-color', 'setting-accent-color-text');
+  syncColorInputs('setting-link-custom-color', 'setting-link-custom-color-text');
   syncColorInputs('modal-link-glow', 'modal-link-glow-text');
 
   function syncColorInputs(pickerId, textId) {
@@ -286,6 +407,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('setting-card-opacity').addEventListener('input', (e) => {
     document.getElementById('card-opacity-val').textContent = `%${Math.round(e.target.value * 100)}`;
   });
+  const audVolInput = document.getElementById('setting-audio-volume');
+  if (audVolInput) {
+    audVolInput.addEventListener('input', (e) => {
+      document.getElementById('audio-volume-val').textContent = `%${e.target.value}`;
+    });
+  }
 
   // --- Save Settings Helper ---
   async function saveSettingsPayload(payload) {
@@ -298,6 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         showToast('Ayarlar başarıyla kaydedildi!', 'success');
         reloadPreview();
+        await loadSettings(); // Re-populate form with fresh server values
       } else {
         showToast('Kaydetme hatası oluştu!', 'error');
       }
@@ -305,6 +433,10 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Sunucu hatası!', 'error');
     }
   }
+
+  // ==========================================
+  // 💾 SETTINGS FORMS SUBMISSION HANDLERS
+  // ==========================================
 
   // 1. Profile Form Save
   document.getElementById('profile-form').addEventListener('submit', (e) => {
@@ -349,7 +481,8 @@ document.addEventListener('DOMContentLoaded', () => {
       audio_title: document.getElementById('setting-audio-title').value,
       audio_artist: document.getElementById('setting-audio-artist').value,
       audio_autoplay: document.getElementById('setting-audio-autoplay').checked ? '1' : '0',
-      show_audio_player: document.getElementById('setting-show-audio-player').checked ? '1' : '0'
+      show_audio_player: document.getElementById('setting-show-audio-player').checked ? '1' : '0',
+      audio_volume: document.getElementById('setting-audio-volume') ? document.getElementById('setting-audio-volume').value : '50'
     };
     saveSettingsPayload(payload);
   });
@@ -383,6 +516,20 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     saveSettingsPayload(payload);
   });
+
+  // 6. Link Appearance Form Save
+  const linkAppearanceForm = document.getElementById('link-appearance-form');
+  if (linkAppearanceForm) {
+    linkAppearanceForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const payload = {
+        link_color_mode: document.getElementById('setting-link-color-mode').value,
+        link_custom_color: document.getElementById('setting-link-custom-color').value,
+        link_glow_enabled: document.getElementById('setting-link-glow-enabled').checked ? '1' : '0'
+      };
+      saveSettingsPayload(payload);
+    });
+  }
 
   // --- Typewriter Dynamic Phrase List ---
   const phrasesContainer = document.getElementById('phrases-list-container');
@@ -500,16 +647,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const item = document.createElement('div');
     item.className = 'sortable-link-item';
     item.setAttribute('data-id', link.id);
-    if (link.glow_color) {
-      item.style.setProperty('--link-color', link.glow_color);
+    
+    // Dynamic color preview based on current mode
+    let itemColor = '#ffffff';
+    const colorMode = currentSettings.link_color_mode || 'original';
+    if (colorMode === 'original') {
+      if (link.icon_type === 'preset' && BRAND_COLOR_MAP[link.icon_value]) {
+        itemColor = BRAND_COLOR_MAP[link.icon_value];
+      } else {
+        itemColor = link.glow_color || '#ffffff';
+      }
+    } else {
+      itemColor = currentSettings.link_custom_color || '#ffffff';
     }
+    item.style.setProperty('--link-color', itemColor);
 
     let iconHtml = '';
     if (link.icon_type === 'custom_image' && link.icon_value) {
       iconHtml = `<img src="${link.icon_value}" alt="${link.title}">`;
     } else {
       const iconClass = ICON_MAP[link.icon_value] || 'fa-solid fa-link';
-      iconHtml = `<i class="${iconClass}"></i>`;
+      iconHtml = `<i class="${iconClass}" style="color: ${itemColor};"></i>`;
     }
 
     item.innerHTML = `
@@ -668,6 +826,10 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.icon-choice').forEach(c => c.classList.remove('active'));
       ic.classList.add('active');
       selectedPresetIcon = ic.getAttribute('data-icon');
+      if (BRAND_COLOR_MAP[selectedPresetIcon]) {
+        document.getElementById('modal-link-glow').value = BRAND_COLOR_MAP[selectedPresetIcon];
+        document.getElementById('modal-link-glow-text').value = BRAND_COLOR_MAP[selectedPresetIcon];
+      }
     });
   });
 
@@ -908,6 +1070,110 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('Sıfırlama başarısız!', 'error');
     }
   });
+
+  // --- Security Audit Logs ---
+  async function loadSecurityLogs() {
+    try {
+      const res = await fetch('/api/admin/security/logs');
+      if (!res.ok) return;
+      const data = await res.json();
+
+      const failedEl = document.getElementById('sec-stat-failed');
+      const successEl = document.getElementById('sec-stat-success');
+      const lockedEl = document.getElementById('sec-stat-locked');
+      const tbody = document.getElementById('security-logs-tbody');
+
+      if (failedEl) failedEl.textContent = data.stats?.total_failed || 0;
+      if (successEl) successEl.textContent = data.stats?.total_successful || 0;
+      if (lockedEl) lockedEl.textContent = data.stats?.currently_locked || 0;
+
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (data.logs && data.logs.length > 0) {
+        data.logs.forEach(log => {
+          const tr = document.createElement('tr');
+
+          // Status badge
+          let badgeHtml = '';
+          if (log.event_type === 'failed_login') {
+            badgeHtml = '<span class="status-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-xmark"></i> Hatalı Şifre</span>';
+          } else if (log.event_type === 'rate_limited') {
+            badgeHtml = '<span class="status-badge" style="background: rgba(234, 179, 8, 0.2); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.4); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-ban"></i> Kilitlendi (IP)</span>';
+          } else if (log.event_type === 'successful_login') {
+            badgeHtml = '<span class="status-badge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-check"></i> Başarılı Giriş</span>';
+          } else {
+            badgeHtml = `<span class="status-badge" style="background: rgba(148, 163, 184, 0.2); color: #94a3b8; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem;">${escapeHtml(log.event_type)}</span>`;
+          }
+
+          // Date format
+          const dateStr = log.created_at ? new Date(log.created_at * 1000).toLocaleString('tr-TR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          }) : '-';
+
+          // User Agent simplification
+          const device = formatDevice(log.user_agent);
+
+          tr.innerHTML = `
+            <td>${badgeHtml}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--text-muted);">${escapeHtml(dateStr)}</td>
+            <td><strong style="font-family: var(--font-mono); color: #38bdf8;">${escapeHtml(log.ip_address)}</strong></td>
+            <td><span style="font-weight: 600; color: #f1f5f9;">${escapeHtml(log.username_attempted || '-')}</span></td>
+            <td><span style="font-size: 0.8rem; color: var(--text-muted);" title="${escapeHtml(log.user_agent || '')}"><i class="fa-solid fa-display" style="margin-right: 4px;"></i>${escapeHtml(device)}</span></td>
+            <td style="font-size: 0.82rem; color: #cbd5e1;">${escapeHtml(log.details || '')}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">Henüz kaydedilmiş güvenlik olayı veya hatalı giriş denemesi yok.</td></tr>';
+      }
+    } catch (e) {
+      console.error('Security logs load error', e);
+    }
+  }
+
+  function formatDevice(ua) {
+    if (!ua) return 'Bilinmiyor';
+    if (ua.includes('Windows')) return 'Windows PC';
+    if (ua.includes('iPhone')) return 'iPhone (iOS)';
+    if (ua.includes('iPad')) return 'iPad (iPadOS)';
+    if (ua.includes('Android')) return 'Android Cihaz';
+    if (ua.includes('Macintosh')) return 'Mac OS';
+    if (ua.includes('Linux')) return 'Linux PC';
+    if (ua.includes('curl') || ua.includes('Postman') || ua.includes('python')) return 'Bot / Script';
+    return 'Web Tarayıcısı';
+  }
+
+  // Refresh Security Logs Button
+  const refreshSecBtn = document.getElementById('refresh-security-logs-btn');
+  if (refreshSecBtn) {
+    refreshSecBtn.addEventListener('click', async () => {
+      refreshSecBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      await loadSecurityLogs();
+      refreshSecBtn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> Yenile';
+      showToast('Güvenlik günlüğü yenilendi.', 'info');
+    });
+  }
+
+  // Clear Security Logs Button
+  const clearSecBtn = document.getElementById('clear-security-logs-btn');
+  if (clearSecBtn) {
+    clearSecBtn.addEventListener('click', async () => {
+      if (!confirm('Tüm güvenlik ve hatalı giriş kayıtlarını temizlemek istediğinizden emin misiniz?')) return;
+      try {
+        const res = await fetch('/api/admin/security/logs/clear', { method: 'POST' });
+        if (res.ok) {
+          showToast('Güvenlik günlüğü temizlendi.', 'success');
+          await loadSecurityLogs();
+        } else {
+          showToast('Temizleme işlemi başarısız!', 'error');
+        }
+      } catch {
+        showToast('Sunucu hatası!', 'error');
+      }
+    });
+  }
 
   // --- Toast Notification Helper ---
   function showToast(message, type = 'info') {

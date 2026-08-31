@@ -74,30 +74,48 @@ img {
   transition: background-color 0.3s ease;
 }
 
-/* --- Particle Canvas Layer (Layer 2) --- */
+/* --- Atmospheric Particle Canvas Layer (Z-3: behind profile, click-through) --- */
 .particles-canvas {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 2;
+  z-index: 3;
   pointer-events: none;
-  display: none;
+  display: block;
 }
 
-/* --- Interactive Cursor Glow Trail (Layer 3) --- */
+/* --- Interactive Cursor Trail Canvas Layer (Z-4: behind profile, click-through) --- */
+.cursor-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 4;
+  pointer-events: none;
+  display: block;
+}
+
+/* --- Interactive Cursor Ambient Glow (Z-6: ambient light behind card content) --- */
 .cursor-glow {
   position: fixed;
-  width: 280px;
-  height: 280px;
+  width: 380px;
+  height: 380px;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--accent-glow) 0%, rgba(168, 85, 247, 0) 70%);
+  background: radial-gradient(circle at center, var(--accent-glow) 0%, rgba(0, 0, 0, 0) 70%);
   transform: translate(-50%, -50%);
   pointer-events: none;
-  z-index: 3;
-  opacity: 0.6;
+  z-index: 6;
+  opacity: 0;
   display: none;
+  will-change: left, top, opacity;
+  transition: opacity 0.35s ease;
+}
+
+.cursor-glow.visible {
+  opacity: 0.85;
 }
 
 /* --- Top-Left Floating Audio Button --- */
@@ -196,10 +214,10 @@ img {
   50% { opacity: 0.4; }
 }
 
-/* --- Main Layout Wrapper (Layer 4) --- */
+/* --- Main Layout Wrapper (Layer 10) --- */
 .main-wrapper {
   position: relative;
-  z-index: 4;
+  z-index: 10;
   min-height: 100vh;
   width: 100%;
   display: flex;
@@ -381,37 +399,51 @@ img {
   word-break: break-word !important;
 }
 
-/* --- Social Icons Row with Vivid Neon Glow --- */
+/* --- Social Icons Row with Dynamic Color & Glow Toggle --- */
 .social-links-bar {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
   align-items: center !important;
-  gap: 16px !important;
-  margin-top: 6px !important;
+  gap: 18px !important;
+  margin-top: 10px !important;
 }
 
 .social-icon-link {
-  color: #ffffff !important;
-  font-size: 1.65rem !important;
+  color: var(--icon-color, #ffffff) !important;
+  font-size: 2.25rem !important;
   text-decoration: none !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: transform 0.22s ease, filter 0.22s ease !important;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 14px var(--icon-glow, var(--accent-glow, rgba(168, 85, 247, 0.6)))) !important;
+  transition: transform 0.22s ease, filter 0.22s ease, color 0.22s ease !important;
+}
+
+.social-icon-link.has-glow {
+  filter: drop-shadow(0 0 5px var(--icon-color, #ffffff)) drop-shadow(0 0 16px var(--icon-glow, var(--accent-glow, rgba(168, 85, 247, 0.6)))) !important;
+}
+
+.social-icon-link.no-glow {
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.65)) !important;
 }
 
 .social-icon-link img {
-  width: 26px !important;
-  height: 26px !important;
+  width: 36px !important;
+  height: 36px !important;
   object-fit: contain !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 .social-icon-link:hover {
-  transform: translateY(-3px) scale(1.22) !important;
-  filter: drop-shadow(0 0 10px #ffffff) drop-shadow(0 0 24px var(--icon-glow, var(--accent-color, #a855f7))) !important;
+  transform: translateY(-4px) scale(1.2) !important;
+}
+
+.social-icon-link.has-glow:hover {
+  filter: drop-shadow(0 0 10px var(--icon-color, #ffffff)) drop-shadow(0 0 28px var(--icon-glow, var(--accent-color, #a855f7))) !important;
+}
+
+.social-icon-link.no-glow:hover {
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.85)) !important;
 }
 
 /* --- Audio Player Widget with Album Art / Vinyl Spin --- */
@@ -629,7 +661,16 @@ img {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px var(--link-glow, var(--accent-glow));
+}
+
+.custom-link-card.has-glow:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 22px var(--link-glow, var(--accent-glow));
+  border-color: var(--link-color, rgba(255, 255, 255, 0.35));
+}
+
+.custom-link-card.no-glow:hover {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .custom-link-left {
@@ -647,10 +688,18 @@ img {
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  color: var(--link-glow, #fff);
+  color: var(--link-color, var(--link-glow, #fff));
   flex-shrink: 0;
   overflow: hidden;
+  transition: all 0.22s ease;
+}
+
+.custom-link-icon-box.has-glow {
   filter: drop-shadow(0 0 8px var(--link-glow, var(--accent-glow)));
+}
+
+.custom-link-icon-box.no-glow {
+  filter: none;
 }
 
 .custom-link-icon-box img {

@@ -21,6 +21,8 @@ window.enterBiolink = function() {
   const eqBars = document.getElementById('equalizer-bars');
 
   if (bgAudio && bgAudio.src && (!profileSettings || String(profileSettings.audio_autoplay) !== '0')) {
+    const initVolPct = (profileSettings && profileSettings.audio_volume !== undefined && profileSettings.audio_volume !== '') ? parseFloat(profileSettings.audio_volume) : 50;
+    bgAudio.volume = Math.max(0, Math.min(1, initVolPct / 100));
     bgAudio.play().then(() => {
       if (audioWidgetIcon) audioWidgetIcon.className = 'fa-solid fa-pause';
       if (audioCoverIcon) audioCoverIcon.className = 'fa-solid fa-pause';
@@ -44,6 +46,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   let typewriterIndex = 0;
   let charIndex = 0;
   let isDeleting = false;
+
+  // Canvas engine state (must be declared before any await so they're initialized before use)
+  let cursorRafId = null;
+  let cursorCanvasRafId = null;
+  let cursorResizeHandler = null;
+  let particleAnimationId = null;
+  let particleResizeHandler = null;
 
   // Comprehensive Icon Mapping Dictionary
   const ICON_MAP = {
@@ -96,6 +105,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     code: 'fa-solid fa-code',
     music: 'fa-solid fa-music',
     heart: 'fa-solid fa-heart'
+  };
+
+  // Brand / Official Logo Colors Dictionary
+  const BRAND_COLOR_MAP = {
+    snapchat: '#FFFC00',
+    youtube: '#FF0000',
+    discord: '#5865F2',
+    spotify: '#1DB954',
+    instagram: '#E1306C',
+    twitter: '#ffffff',
+    tiktok: '#ff0050',
+    telegram: '#229ED9',
+    soundcloud: '#FF5500',
+    paypal: '#0079C1',
+    github: '#ffffff',
+    roblox: '#ffffff',
+    cashapp: '#00D632',
+    venmo: '#008CFF',
+    playstation: '#003791',
+    xbox: '#107C10',
+    applemusic: '#FA243C',
+    gitlab: '#FC6D26',
+    twitch: '#9146FF',
+    reddit: '#FF4500',
+    vk: '#0077FF',
+    ngl: '#ff5555',
+    bluesky: '#0285FF',
+    linkedin: '#0A66C2',
+    steam: '#ffffff',
+    kick: '#53FC18',
+    pinterest: '#E60023',
+    coffee: '#FFDD00',
+    facebook: '#1877F2',
+    threads: '#ffffff',
+    patreon: '#FF424D',
+    signal: '#3A76F0',
+    bitcoin: '#F7931A',
+    ethereum: '#627EEA',
+    litecoin: '#345D9D',
+    solana: '#14F195',
+    monero: '#FF6600',
+    envelope: '#ffffff',
+    shield: '#38bdf8',
+    globe: '#ffffff',
+    gamepad: '#a855f7',
+    code: '#22c55e',
+    music: '#ec4899',
+    heart: '#ef4444'
   };
 
   // Distinct Badges Mapping
@@ -245,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 8. Social & Custom Links
     if (Array.isArray(links)) {
-      renderLinks(links);
+      renderLinks(links, settings);
     }
 
     // 9. Audio Player Widget & Controls
@@ -274,15 +331,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // 11. Particle Canvas Engine (Snow, Stars, Fireflies, Rain)
-    initParticles(settings.particles_effect || 'none');
+    // 11. Atmospheric Particle Canvas Engine
+    initParticles(settings.particles_effect || 'none', accent);
 
     // 12. Interactive Cursor Trail
     if (String(settings.cursor_trail) === '1' || settings.cursor_trail === true) {
-      initCursorGlow();
+      initCursorTrail(accent);
     } else {
       const cursor = document.getElementById('cursor-glow');
-      if (cursor) cursor.style.display = 'none';
+      if (cursor) {
+        cursor.style.display = 'none';
+        cursor.classList.remove('visible');
+      }
+      const cCanvas = document.getElementById('cursor-canvas');
+      if (cCanvas) cCanvas.style.display = 'none';
     }
   }
 
@@ -377,7 +439,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // --- Render Social & Custom Links ---
-  function renderLinks(links) {
+  function renderLinks(links, settings = {}) {
     const socialBar = document.getElementById('social-links-bar');
     const customContainer = document.getElementById('custom-links-container');
     if (socialBar) socialBar.innerHTML = '';
@@ -386,17 +448,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     const socialLinks = links.filter(l => l.is_social === 1);
     const customLinks = links.filter(l => l.is_social === 0);
 
+    const colorMode = settings.link_color_mode || 'original'; // 'original' vs 'custom'
+    const customColor = settings.link_custom_color || '#ffffff';
+    const isGlowEnabled = String(settings.link_glow_enabled) !== '0';
+
     if (socialBar) {
       socialLinks.forEach(link => {
         const a = document.createElement('a');
-        a.href = link.url;
+        a.href = sanitizeUrl(link.url);
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        a.className = 'social-icon-link';
         a.title = link.title;
-        if (link.glow_color) {
-          a.style.setProperty('--icon-glow', link.glow_color);
+
+        // Calculate icon color based on mode
+        let iconColor = '#ffffff';
+        if (colorMode === 'original') {
+          if (link.icon_type === 'preset' && BRAND_COLOR_MAP[link.icon_value]) {
+            iconColor = BRAND_COLOR_MAP[link.icon_value];
+          } else {
+            iconColor = link.glow_color || '#ffffff';
+          }
+        } else {
+          iconColor = customColor;
         }
+
+        a.className = `social-icon-link ${isGlowEnabled ? 'has-glow' : 'no-glow'}`;
+        a.style.setProperty('--icon-color', iconColor);
+        a.style.setProperty('--icon-glow', iconColor);
 
         if (link.icon_type === 'custom_image' && link.icon_value) {
           a.innerHTML = `<img src="${link.icon_value}" alt="${escapeHtml(link.title)}">`;
@@ -413,13 +491,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (customContainer) {
       customLinks.forEach(link => {
         const card = document.createElement('a');
-        card.href = link.url;
+        card.href = sanitizeUrl(link.url);
         card.target = '_blank';
         card.rel = 'noopener noreferrer';
-        card.className = 'custom-link-card';
-        if (link.glow_color) {
-          card.style.setProperty('--link-glow', link.glow_color);
+
+        let linkColor = '#ffffff';
+        if (colorMode === 'original') {
+          if (link.icon_type === 'preset' && BRAND_COLOR_MAP[link.icon_value]) {
+            linkColor = BRAND_COLOR_MAP[link.icon_value];
+          } else {
+            linkColor = link.glow_color || '#ffffff';
+          }
+        } else {
+          linkColor = customColor;
         }
+
+        card.className = `custom-link-card ${isGlowEnabled ? 'has-glow' : 'no-glow'}`;
+        card.style.setProperty('--link-color', linkColor);
+        card.style.setProperty('--link-glow', linkColor);
 
         let iconHtml = '';
         if (link.icon_type === 'custom_image' && link.icon_value) {
@@ -431,7 +520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         card.innerHTML = `
           <div class="custom-link-left">
-            <div class="custom-link-icon-box">
+            <div class="custom-link-icon-box ${isGlowEnabled ? 'has-glow' : 'no-glow'}">
               ${iconHtml}
             </div>
             <div class="custom-link-texts">
@@ -448,8 +537,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  const clickedRecently = new Set();
+
   function trackClick(linkId) {
     if (!linkId) return;
+    // Do not track clicks if inside admin preview iframe
+    if (window.self !== window.top) return;
+    // Client-side debounce (1 minute per link)
+    if (clickedRecently.has(linkId)) return;
+    clickedRecently.add(linkId);
+    setTimeout(() => clickedRecently.delete(linkId), 60000);
+
     try {
       fetch('/api/analytics/click', {
         method: 'POST',
@@ -479,7 +577,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (settings.audio_url && settings.audio_url.trim() !== '') {
       bgAudio.src = settings.audio_url;
-      bgAudio.volume = volSlider ? parseFloat(volSlider.value) : 0.7;
+
+      const initVolPct = (settings.audio_volume !== undefined && settings.audio_volume !== '') ? parseFloat(settings.audio_volume) : 50;
+      const initialVolume = Math.max(0, Math.min(1, initVolPct / 100));
+      bgAudio.volume = initialVolume;
+
+      if (volSlider) {
+        volSlider.value = initialVolume;
+      }
 
       const title = settings.audio_title && settings.audio_title.trim() !== '' ? settings.audio_title : 'Audio Track';
       const artist = settings.audio_artist && settings.audio_artist.trim() !== '' ? settings.audio_artist : 'alpay.fun';
@@ -549,38 +654,130 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (audioFloatingBtn) audioFloatingBtn.style.display = 'none';
     }
   }
+  // --- Smooth Cursor Glow Trail Engine ---
 
-  // --- Interactive Cursor Glow ---
-  function initCursorGlow() {
-    const cursor = document.getElementById('cursor-glow');
-    if (!cursor) return;
-    cursor.style.display = 'block';
+  function initCursorTrail(accentColor = '#a855f7') {
+    const cursorGlow = document.getElementById('cursor-glow');
+    const canvas = document.getElementById('cursor-canvas');
 
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let currentX = mouseX;
-    let currentY = mouseY;
+    if (cursorGlow) {
+      cursorGlow.style.display = 'block';
+      cursorGlow.classList.add('visible');
+    }
+
+    if (!canvas) return;
+    canvas.style.display = 'block';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let W = (canvas.width = window.innerWidth);
+    let H = (canvas.height = window.innerHeight);
+
+    if (cursorResizeHandler) window.removeEventListener('resize', cursorResizeHandler);
+    cursorResizeHandler = () => {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', cursorResizeHandler);
+
+    let mouseX = W / 2, mouseY = H / 2;
+    let targetX = mouseX, targetY = mouseY;
+
+    // Smooth trail: store recent positions
+    const trail = [];
+    const maxTrail = 28;
 
     window.addEventListener('mousemove', (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      cursor.style.left = `${mouseX}px`;
-      cursor.style.top = `${mouseY}px`;
+      targetX = e.clientX;
+      targetY = e.clientY;
+      if (cursorGlow && !cursorGlow.classList.contains('visible')) {
+        cursorGlow.classList.add('visible');
+      }
+      trail.unshift({ x: e.clientX, y: e.clientY });
+      if (trail.length > maxTrail) trail.pop();
     });
 
-    function animateCursor() {
-      currentX += (mouseX - currentX) * 0.2;
-      currentY += (mouseY - currentY) * 0.2;
-      cursor.style.left = `${currentX}px`;
-      cursor.style.top = `${currentY}px`;
-      requestAnimationFrame(animateCursor);
+    window.addEventListener('mouseleave', () => {
+      if (cursorGlow) cursorGlow.classList.remove('visible');
+      trail.length = 0;
+    });
+
+    if (cursorRafId) cancelAnimationFrame(cursorRafId);
+    if (cursorCanvasRafId) cancelAnimationFrame(cursorCanvasRafId);
+
+    function tickCursor() {
+      mouseX += (targetX - mouseX) * 0.15;
+      mouseY += (targetY - mouseY) * 0.15;
+      if (cursorGlow) {
+        cursorGlow.style.left = `${mouseX}px`;
+        cursorGlow.style.top = `${mouseY}px`;
+      }
+      cursorRafId = requestAnimationFrame(tickCursor);
     }
-    animateCursor();
+    tickCursor();
+
+    // Render smooth fading trail
+    function renderTrail() {
+      ctx.clearRect(0, 0, W, H);
+
+      if (trail.length > 2) {
+        // Smooth gradient ribbon
+        for (let i = 0; i < trail.length - 1; i++) {
+          const p1 = trail[i];
+          const p2 = trail[i + 1];
+          const t = 1 - i / trail.length;
+
+          // Soft outer glow stroke
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = accentColor;
+          ctx.lineWidth = t * 6 + 1;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = t * 0.35;
+          ctx.shadowBlur = 18;
+          ctx.shadowColor = accentColor;
+          ctx.stroke();
+          ctx.restore();
+
+          // Inner bright core
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = t * 1.8 + 0.5;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = t * 0.6;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Soft glow dot at cursor head
+        if (trail.length > 0) {
+          const head = trail[0];
+          ctx.save();
+          const grad = ctx.createRadialGradient(head.x, head.y, 0, head.x, head.y, 16);
+          grad.addColorStop(0, accentColor + 'aa');
+          grad.addColorStop(1, accentColor + '00');
+          ctx.fillStyle = grad;
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.arc(head.x, head.y, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      cursorCanvasRafId = requestAnimationFrame(renderTrail);
+    }
+    renderTrail();
   }
 
-  // --- Particle Canvas Engine ---
-  let particleAnimationId = null;
-  function initParticles(type) {
+  // --- Smooth Atmospheric Particle Engine ---
+
+  function initParticles(type, accentColor = '#a855f7') {
     const canvas = document.getElementById('particles-canvas');
     if (!canvas) return;
 
@@ -588,81 +785,254 @@ document.addEventListener('DOMContentLoaded', async () => {
       cancelAnimationFrame(particleAnimationId);
       particleAnimationId = null;
     }
+    if (particleResizeHandler) {
+      window.removeEventListener('resize', particleResizeHandler);
+      particleResizeHandler = null;
+    }
 
     if (!type || type === 'none') {
       canvas.style.display = 'none';
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
 
     canvas.style.display = 'block';
     const ctx = canvas.getContext('2d');
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    if (!ctx) return;
 
-    window.addEventListener('resize', () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
-    });
+    let W = (canvas.width = window.innerWidth);
+    let H = (canvas.height = window.innerHeight);
+
+    particleResizeHandler = () => {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', particleResizeHandler);
 
     const particles = [];
-    const count = type === 'rain' ? 100 : (type === 'stars' ? 130 : 65);
 
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        radius: type === 'stars' ? Math.random() * 1.8 + 0.6 : (type === 'fireflies' ? Math.random() * 2.8 + 1.2 : Math.random() * 2.8 + 0.8),
-        speedX: type === 'rain' ? 0 : (Math.random() - 0.5) * 0.8,
-        speedY: type === 'rain' ? Math.random() * 8 + 5 : (type === 'snow' ? Math.random() * 1.6 + 0.5 : (Math.random() - 0.5) * 0.7),
-        alpha: Math.random() * 0.7 + 0.3,
-        twinkleSpeed: Math.random() * 0.04 + 0.015
-      });
+    // --- Per-type initialization ---
+    if (type === 'snow') {
+      for (let i = 0; i < 70; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 2.5 + 1,
+          vy: Math.random() * 0.6 + 0.3,
+          drift: Math.random() * Math.PI * 2,
+          alpha: Math.random() * 0.4 + 0.2
+        });
+      }
+    } else if (type === 'stars') {
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 1.8 + 0.6,
+          alpha: Math.random() * 0.5 + 0.3,
+          phase: Math.random() * Math.PI * 2,
+          speed: Math.random() * 0.015 + 0.008
+        });
+      }
+    } else if (type === 'fireflies') {
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 3 + 1.5,
+          phase: Math.random() * Math.PI * 2,
+          phaseX: Math.random() * Math.PI * 2,
+          alpha: Math.random() * 0.5 + 0.2
+        });
+      }
+    } else if (type === 'rain') {
+      for (let i = 0; i < 100; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          vy: Math.random() * 8 + 6,
+          len: Math.random() * 16 + 10,
+          alpha: Math.random() * 0.25 + 0.1
+        });
+      }
+    } else if (type === 'matrix') {
+      const colW = 22;
+      const cols = Math.floor(W / colW);
+      for (let c = 0; c < cols; c++) {
+        particles.push({
+          x: c * colW,
+          y: Math.random() * -H,
+          vy: Math.random() * 3 + 2,
+          char: String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96)),
+          trail: [],
+          alpha: Math.random() * 0.5 + 0.3
+        });
+      }
+    } else if (type === 'cosmic') {
+      for (let i = 0; i < 45; i++) {
+        particles.push({
+          x: Math.random() * W, y: Math.random() * H,
+          r: Math.random() * 4 + 2,
+          hue: Math.floor(Math.random() * 60) + 250,
+          phase: Math.random() * Math.PI * 2,
+          alpha: Math.random() * 0.35 + 0.15
+        });
+      }
     }
 
-    function renderParticles() {
-      ctx.clearRect(0, 0, width, height);
+    const t0 = performance.now();
 
-      particles.forEach(p => {
-        ctx.beginPath();
-        if (type === 'rain') {
-          ctx.strokeStyle = `rgba(200, 230, 255, ${p.alpha * 0.8})`;
-          ctx.lineWidth = 1.5;
+    function render(now) {
+      ctx.clearRect(0, 0, W, H);
+      const t = (now - t0) / 1000;
+
+      // ❄️ SNOW — soft drifting flakes
+      if (type === 'snow') {
+        particles.forEach(p => {
+          p.y += p.vy;
+          p.x += Math.sin(t * 0.5 + p.drift) * 0.4;
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = 'rgba(255,255,255,0.5)';
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (p.y > H + 5) { p.y = -5; p.x = Math.random() * W; }
+          if (p.x > W + 5) p.x = -5;
+          if (p.x < -5) p.x = W + 5;
+        });
+
+      // ✨ STARS — gentle twinkling points
+      } else if (type === 'stars') {
+        particles.forEach(p => {
+          const pulse = 0.3 + 0.7 * ((Math.sin(t * 1.5 + p.phase) + 1) / 2);
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha * pulse;
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = 'rgba(255,255,255,0.6)';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * (0.8 + pulse * 0.4), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+      // 🔥 FIREFLIES — warm floating orbs
+      } else if (type === 'fireflies') {
+        particles.forEach(p => {
+          p.x += Math.sin(t * 0.7 + p.phaseX) * 0.5;
+          p.y += Math.cos(t * 0.5 + p.phase) * 0.4 - 0.2;
+          const glow = 0.3 + 0.7 * ((Math.sin(t * 2 + p.phase) + 1) / 2);
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha * glow;
+          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
+          grad.addColorStop(0, 'rgba(251, 191, 36, 0.9)');
+          grad.addColorStop(0.5, 'rgba(251, 191, 36, 0.3)');
+          grad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (p.y < -20) { p.y = H + 20; p.x = Math.random() * W; }
+          if (p.x < -20) p.x = W + 20;
+          if (p.x > W + 20) p.x = -20;
+        });
+
+      // 🌧️ RAIN — soft falling streaks
+      } else if (type === 'rain') {
+        particles.forEach(p => {
+          p.y += p.vy;
+          p.x += 0.8;
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
           ctx.moveTo(p.x, p.y);
-          ctx.lineTo(p.x, p.y + 16);
+          ctx.lineTo(p.x - 1.5, p.y - p.len);
           ctx.stroke();
-        } else if (type === 'stars') {
-          p.alpha += Math.sin(Date.now() * p.twinkleSpeed) * 0.02;
-          p.alpha = Math.max(0.15, Math.min(0.95, p.alpha));
-          ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (type === 'fireflies') {
-          ctx.fillStyle = `rgba(250, 204, 21, ${p.alpha})`;
-          ctx.shadowBlur = 14;
-          ctx.shadowColor = '#facc15';
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        } else {
-          // Default Snow
-          ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha * 0.9})`;
-          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
+          ctx.restore();
 
-        p.x += p.speedX;
-        p.y += p.speedY;
+          if (p.y > H + 20) { p.y = -25; p.x = Math.random() * W; }
+        });
 
-        if (p.y > height) { p.y = -12; p.x = Math.random() * width; }
-        if (p.y < -12) { p.y = height + 6; p.x = Math.random() * width; }
-        if (p.x > width) p.x = 0;
-        if (p.x < 0) p.x = width;
-      });
+      // 💻 MATRIX — soft digital rain
+      } else if (type === 'matrix') {
+        particles.forEach(p => {
+          p.y += p.vy;
 
-      particleAnimationId = requestAnimationFrame(renderParticles);
+          ctx.save();
+          ctx.font = "14px 'JetBrains Mono', monospace";
+          ctx.globalAlpha = p.alpha * 0.9;
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = 'rgba(34, 197, 94, 0.5)';
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.fillText(p.char, p.x, p.y);
+
+          p.trail.unshift({ y: p.y, c: p.char });
+          if (p.trail.length > 18) p.trail.pop();
+
+          p.trail.forEach((tr, idx) => {
+            const a = (1 - idx / p.trail.length) * 0.5 * p.alpha;
+            ctx.globalAlpha = a;
+            ctx.fillStyle = 'rgba(34, 197, 94, 0.8)';
+            ctx.fillText(tr.c, p.x, tr.y);
+          });
+
+          ctx.restore();
+
+          if (Math.random() < 0.06) {
+            p.char = String.fromCharCode(0x30A0 + Math.floor(Math.random() * 96));
+          }
+          if (p.y > H + 50) { p.y = Math.random() * -80; p.trail = []; }
+        });
+
+      // 🪐 COSMIC — drifting soft nebula orbs
+      } else if (type === 'cosmic') {
+        particles.forEach(p => {
+          p.x += Math.cos(t * 0.4 + p.phase) * 0.5;
+          p.y += Math.sin(t * 0.3 + p.phase) * 0.5;
+          const a = 0.3 + 0.5 * ((Math.sin(t * 1.2 + p.phase) + 1) / 2);
+
+          ctx.save();
+          ctx.globalAlpha = p.alpha * a;
+          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 3);
+          grad.addColorStop(0, `hsla(${p.hue}, 80%, 65%, 0.8)`);
+          grad.addColorStop(0.5, `hsla(${p.hue}, 70%, 55%, 0.25)`);
+          grad.addColorStop(1, `hsla(${p.hue}, 60%, 45%, 0)`);
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          if (p.y < -25) p.y = H + 25;
+          if (p.y > H + 25) p.y = -25;
+          if (p.x < -25) p.x = W + 25;
+          if (p.x > W + 25) p.x = -25;
+        });
+      }
+
+      particleAnimationId = requestAnimationFrame(render);
     }
 
-    renderParticles();
+    particleAnimationId = requestAnimationFrame(render);
+  }
+
+  function sanitizeUrl(urlStr) {
+    if (!urlStr || typeof urlStr !== 'string') return '';
+    const trimmed = urlStr.trim();
+    if (/^(javascript|data|vbscript|file):/i.test(trimmed)) {
+      return '#';
+    }
+    return trimmed;
   }
 
   function escapeHtml(str) {
